@@ -82,9 +82,9 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       channel = null
     }
 
-    // Ensure room exists
+    // Ensure room exists (new rooms start with no video)
     await supabase.from('rooms').upsert(
-      { id: roomId },
+      { id: roomId, video_url: '' },
       { onConflict: 'id', ignoreDuplicates: true },
     )
 
