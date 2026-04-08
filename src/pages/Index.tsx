@@ -58,7 +58,7 @@ export default function Index() {
               </div>
               <h2 className="text-2xl font-semibold">Criar Sala</h2>
               <p className="text-text-secondary text-sm">
-                Crie um ambiente privado e convide a galera para assistir.
+                Crie um ambiente privado e convide quem você ama para assistir.
               </p>
             </div>
             <button
