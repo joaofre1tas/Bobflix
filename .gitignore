@@ -34,3 +34,4 @@ screenshot.png
 
 # Environment variables
 .env*
+!.env.example
