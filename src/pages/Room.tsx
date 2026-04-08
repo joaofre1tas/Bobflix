@@ -11,7 +11,7 @@ import { MessageSquare } from 'lucide-react'
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const [store, setStore] = useRoomStore()
+  const [store] = useRoomStore()
   const [showMobileChat, setShowMobileChat] = useState(false)
 
   // Initialization check
@@ -20,15 +20,15 @@ export default function Room() {
       // Small prompt if user bypassed the home screen
       const name = prompt('Bem-vindo! Qual o seu apelido?')
       if (name) {
-        setStore.setCurrentUser(name)
-        if (roomId) setStore.joinRoom(roomId)
+        store.setCurrentUser(name)
+        if (roomId) store.joinRoom(roomId)
       } else {
         navigate('/')
       }
     } else if (roomId && store.roomId !== roomId) {
-      setStore.joinRoom(roomId)
+      store.joinRoom(roomId)
     }
-  }, [roomId, store.currentUser, navigate, setStore, store.roomId])
+  }, [roomId, store.currentUser, navigate, store.roomId, store.setCurrentUser, store.joinRoom])
 
   if (!store.currentUser || !store.roomId) {
     return <div className="flex-1 flex items-center justify-center">Carregando sala...</div>
