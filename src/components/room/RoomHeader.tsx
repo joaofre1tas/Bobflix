@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, Play } from 'lucide-react'
 import { useRoomStore } from '@/stores/useRoomStore'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
@@ -30,16 +30,22 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
       </div>
 
       {/* URL Input */}
-      <form onSubmit={handleUrlSubmit} className="flex-1 max-w-2xl mx-auto flex items-center">
-        <div className="relative w-full">
-          <input
-            type="text"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="Cole o link do YouTube aqui..."
-            className="w-full rounded-full bg-surface-alt border border-transparent px-5 py-2.5 text-sm focus:bg-white focus:border-bobflix-500 focus:ring-4 focus:ring-bobflix-100 outline-none transition-all placeholder:text-text-secondary/70"
-          />
-        </div>
+      <form onSubmit={handleUrlSubmit} className="flex-1 max-w-2xl mx-auto flex items-center gap-2">
+        <input
+          type="text"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="Cole o link do YouTube aqui..."
+          className="flex-1 rounded-full bg-surface-alt border border-transparent px-5 py-2.5 text-sm focus:bg-white focus:border-bobflix-500 focus:ring-4 focus:ring-bobflix-100 outline-none transition-all placeholder:text-text-secondary/70"
+        />
+        <button
+          type="submit"
+          disabled={!urlInput.trim()}
+          className="shrink-0 rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary text-white px-5 py-2.5 text-sm font-medium transition-colors flex items-center gap-1.5"
+        >
+          <Play size={14} />
+          <span className="hidden sm:inline">Carregar</span>
+        </button>
       </form>
 
       {/* Room Badge */}

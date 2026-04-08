@@ -83,10 +83,10 @@ export default function YouTubePlayer() {
 
     if (status === 'playing') {
       playerRef.current.playVideo()
-      if (timeDiff > 2) playerRef.current.seekTo(time, true)
+      if (timeDiff > 1) playerRef.current.seekTo(time, true)
     } else if (status === 'paused') {
       playerRef.current.pauseVideo()
-      if (timeDiff > 1) playerRef.current.seekTo(time, true)
+      if (timeDiff > 0.5) playerRef.current.seekTo(time, true)
     }
   }, [store.playback, isReady])
 

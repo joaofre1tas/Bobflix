@@ -167,18 +167,13 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       },
     )
 
-    // Postgres Changes: playback sync
-    channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'playback_state', filter: `room_id=eq.${roomId}` },
-      (payload) => {
-        const pb = payload.new as any
-        if (pb.updated_by === get().currentUser?.id) return
-        set(() => ({ playback: { status: pb.status, time: pb.time, updatedBy: pb.updated_by } }))
-        if (pb.status === 'playing') get().addNotification('Alguém deu play')
-        if (pb.status === 'paused') get().addNotification('Alguém pausou')
-      },
-    )
+    // Broadcast: playback sync (faster than Postgres Changes)
+    channel.on('broadcast', { event: 'playback' }, ({ payload }) => {
+      if (payload.updatedBy === get().currentUser?.id) return
+      set(() => ({ playback: { status: payload.status, time: payload.time, updatedBy: payload.updatedBy } }))
+      if (payload.status === 'playing') get().addNotification('Alguém deu play')
+      if (payload.status === 'paused') get().addNotification('Alguém pausou')
+    })
 
     // Postgres Changes: room video URL
     channel.on(
@@ -269,13 +264,16 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     if (!user || !roomId) return
 
     const currentState = get().playback
-    if (currentState.status === status && Math.abs(currentState.time - time) < 2) return
+    if (currentState.status === status && Math.abs(currentState.time - time) < 1) return
 
     set(() => ({ playback: { status, time, updatedBy: isLocal ? user.id : 'remote' } }))
 
     if (isLocal) {
       if (status === 'playing') get().addNotification(`${user.nickname} deu play`)
       if (status === 'paused') get().addNotification(`${user.nickname} pausou`)
+      // Broadcast for instant sync with other clients
+      channel?.send({ type: 'broadcast', event: 'playback', payload: { status, time, updatedBy: user.id } })
+      // Persist for late joiners
       supabase.from('playback_state').upsert({
         room_id: roomId,
         status,
