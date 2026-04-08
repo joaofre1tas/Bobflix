@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useRoomStore } from '@/stores/useRoomStore'
-import { PlaySquare, LogIn, Sparkles } from 'lucide-react'
+import { LogIn, Sparkles } from 'lucide-react'
+import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function Index() {
   const [nickname, setNickname] = useState('')
@@ -26,11 +27,8 @@ export default function Index() {
     <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in">
       <div className="w-full max-w-2xl text-center space-y-12">
         {/* Logo Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-center gap-3 text-bobflix-700">
-            <PlaySquare size={48} className="fill-bobflix-500/20" />
-            <h1 className="text-5xl font-bold tracking-tight">Bobflix</h1>
-          </div>
+        <div className="space-y-6 flex flex-col items-center">
+          <img src={logoImg} alt="Bobflix" className="h-16 md:h-20 object-contain" />
           <p className="text-text-secondary text-lg">
             Assista vídeos em perfeita sincronia com seus amigos.
           </p>

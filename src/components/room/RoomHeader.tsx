@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { PlaySquare, Copy, Check } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import { useRoomStore } from '@/stores/useRoomStore'
+import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function RoomHeader({ roomId }: { roomId: string }) {
   const [copied, setCopied] = useState(false)
@@ -24,9 +25,8 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
   return (
     <header className="h-[76px] px-6 bg-surface border-b border-surface-alt flex items-center justify-between gap-4 z-10">
       {/* Logo */}
-      <div className="flex items-center gap-2 text-bobflix-700 hidden sm:flex shrink-0">
-        <PlaySquare size={28} className="fill-bobflix-500/20" />
-        <span className="font-bold text-xl tracking-tight">Bobflix</span>
+      <div className="hidden sm:flex items-center shrink-0">
+        <img src={logoImg} alt="Bobflix" className="h-10 object-contain" />
       </div>
 
       {/* URL Input */}
