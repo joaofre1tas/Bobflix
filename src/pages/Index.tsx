@@ -12,14 +12,14 @@ export default function Index() {
 
   const handleCreateRoom = () => {
     if (!nickname.trim()) return
-    setStore.setCurrentUser(nickname)
+    setStore(() => ({ currentUser: nickname }))
     const code = `BF-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
     navigate(`/sala/${code}`)
   }
 
   const handleJoinRoom = () => {
     if (!nickname.trim() || !roomCode.trim()) return
-    setStore.setCurrentUser(nickname)
+    setStore(() => ({ currentUser: nickname }))
     navigate(`/sala/${roomCode.toUpperCase()}`)
   }
 
