@@ -1,0 +1,67 @@
+import { useState } from 'react'
+import { PlaySquare, Copy, Check } from 'lucide-react'
+import { useRoomStore } from '@/stores/useRoomStore'
+
+export default function RoomHeader({ roomId }: { roomId: string }) {
+  const [copied, setCopied] = useState(false)
+  const [store, setStore] = useRoomStore()
+  const [urlInput, setUrlInput] = useState('')
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`https://bobflix.app/sala/${roomId}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleUrlSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (urlInput.trim()) {
+      setStore.setVideoUrl(urlInput.trim())
+      setUrlInput('')
+    }
+  }
+
+  return (
+    <header className="h-[76px] px-6 bg-surface border-b border-surface-alt flex items-center justify-between gap-4 z-10">
+      {/* Logo */}
+      <div className="flex items-center gap-2 text-bobflix-700 hidden sm:flex shrink-0">
+        <PlaySquare size={28} className="fill-bobflix-500/20" />
+        <span className="font-bold text-xl tracking-tight">Bobflix</span>
+      </div>
+
+      {/* URL Input */}
+      <form onSubmit={handleUrlSubmit} className="flex-1 max-w-2xl mx-auto flex items-center">
+        <div className="relative w-full">
+          <input
+            type="text"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="Cole o link do YouTube aqui..."
+            className="w-full rounded-full bg-surface-alt border border-transparent px-5 py-2.5 text-sm focus:bg-white focus:border-bobflix-500 focus:ring-4 focus:ring-bobflix-100 outline-none transition-all placeholder:text-text-secondary/70"
+          />
+        </div>
+      </form>
+
+      {/* Room Badge */}
+      <div className="shrink-0 flex items-center gap-3">
+        <div className="hidden md:flex flex-col items-end">
+          <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+            Sala
+          </span>
+          <span className="font-semibold text-text-primary leading-tight">{roomId}</span>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 rounded-full bg-surface-alt hover:bg-surface-alt/70 px-4 py-2.5 text-sm font-medium transition-colors border border-transparent"
+        >
+          {copied ? (
+            <Check size={16} className="text-green-500" />
+          ) : (
+            <Copy size={16} className="text-text-secondary" />
+          )}
+          <span className="hidden sm:inline">{copied ? 'Copiado' : 'Copiar Link'}</span>
+        </button>
+      </div>
+    </header>
+  )
+}

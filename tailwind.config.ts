@@ -1,4 +1,3 @@
-/* Tailwind config for the frontend react app. This is where the app theme should be defined: https://v2.tailwindcss.com/docs/configuration. */
 import type { Config } from 'tailwindcss'
 import animatePlugin from 'tailwindcss-animate'
 import typographyPlugin from '@tailwindcss/typography'
@@ -27,10 +26,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
-        display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
+        sans: ['Outfit', 'Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
       },
       colors: {
+        bg: '#F7F8FA',
+        surface: '#FFFFFF',
+        'surface-alt': '#ECEEF2',
+        'text-primary': '#1A1C22',
+        'text-secondary': '#6B7280',
+        bobflix: {
+          100: '#D6E4FF',
+          400: '#6B91F7',
+          500: '#3B6CF4',
+          700: '#1A3A8F',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -64,36 +74,15 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-        chart: {
-          1: 'hsl(var(--chart-1))',
-          2: 'hsl(var(--chart-2))',
-          3: 'hsl(var(--chart-3))',
-          4: 'hsl(var(--chart-4))',
-          5: 'hsl(var(--chart-5))',
-        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      transitionProperty: {
-        width: 'width',
-        height: 'height',
-      },
       boxShadow: {
-        subtle: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-        elevation: '0 4px 20px rgba(0, 0, 0, 0.05)',
+        subtle: '0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0,0,0,0.02)',
+        elevation: '0 8px 30px rgba(0, 0, 0, 0.08)',
       },
       transitionTimingFunction: {
         apple: 'cubic-bezier(0.42, 0, 0.58, 1)',

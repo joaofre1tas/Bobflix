@@ -1,12 +1,107 @@
-/* Home Page - Replace this page layout, components, content, behavior with what you want and translate to the language of the user */
-const Index = () => {
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useRoomStore } from '@/stores/useRoomStore'
+import { PlaySquare, LogIn, Sparkles } from 'lucide-react'
+
+export default function Index() {
+  const [nickname, setNickname] = useState('')
+  const [roomCode, setRoomCode] = useState('')
+  const [, setStore] = useRoomStore()
+  const navigate = useNavigate()
+
+  const handleCreateRoom = () => {
+    if (!nickname.trim()) return
+    setStore.setCurrentUser(nickname)
+    const code = `BF-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+    navigate(`/sala/${code}`)
+  }
+
+  const handleJoinRoom = () => {
+    if (!nickname.trim() || !roomCode.trim()) return
+    setStore.setCurrentUser(nickname)
+    navigate(`/sala/${roomCode.toUpperCase()}`)
+  }
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">
-        This is a example page ready to be rewritten with your own content
-      </h1>
+    <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in">
+      <div className="w-full max-w-2xl text-center space-y-12">
+        {/* Logo Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-3 text-bobflix-700">
+            <PlaySquare size={48} className="fill-bobflix-500/20" />
+            <h1 className="text-5xl font-bold tracking-tight">Bobflix</h1>
+          </div>
+          <p className="text-text-secondary text-lg">
+            Assista vídeos em perfeita sincronia com seus amigos.
+          </p>
+        </div>
+
+        {/* User Setup */}
+        <div className="max-w-md mx-auto">
+          <label className="block text-sm font-medium text-text-secondary mb-2 text-left ml-2">
+            Como você quer ser chamado?
+          </label>
+          <input
+            type="text"
+            placeholder="Seu apelido..."
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="w-full rounded-2xl border-2 border-surface-alt bg-surface-alt px-5 py-4 text-lg focus:bg-surface focus:border-bobflix-500 focus:ring-0 outline-none transition-all shadow-sm"
+          />
+        </div>
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+          {/* Create Card */}
+          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col justify-between hover:shadow-elevation transition-shadow duration-300">
+            <div className="text-left space-y-2 mb-8">
+              <div className="w-12 h-12 rounded-full bg-bobflix-100 text-bobflix-500 flex items-center justify-center mb-4">
+                <Sparkles size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Criar Sala</h2>
+              <p className="text-text-secondary text-sm">
+                Crie um ambiente privado e convide a galera para assistir.
+              </p>
+            </div>
+            <button
+              onClick={handleCreateRoom}
+              disabled={!nickname.trim()}
+              className="w-full rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-colors"
+            >
+              Criar nova sala
+            </button>
+          </div>
+
+          {/* Join Card */}
+          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col justify-between hover:shadow-elevation transition-shadow duration-300">
+            <div className="text-left space-y-2 mb-8">
+              <div className="w-12 h-12 rounded-full bg-surface-alt text-text-primary flex items-center justify-center mb-4">
+                <LogIn size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Entrar em Sala</h2>
+              <p className="text-text-secondary text-sm">
+                Já tem um código? Entre em uma sala existente.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Ex: BF-X7K2"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+                className="w-full rounded-full border-2 border-surface-alt bg-surface-alt px-5 py-3 text-center uppercase tracking-widest focus:bg-surface focus:border-text-primary outline-none transition-all placeholder:normal-case placeholder:tracking-normal"
+              />
+              <button
+                onClick={handleJoinRoom}
+                disabled={!nickname.trim() || !roomCode.trim()}
+                className="w-full rounded-full bg-text-primary hover:bg-black disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-colors"
+              >
+                Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-export default Index
