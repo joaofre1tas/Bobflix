@@ -19,7 +19,7 @@ function extractVideoId(url: string) {
 export default function YouTubePlayer() {
   const playerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [store, setStore] = useRoomStore()
+  const [store] = useRoomStore()
   const [isReady, setIsReady] = useState(false)
 
   // 1. Load YT API Script
@@ -72,9 +72,9 @@ export default function YouTubePlayer() {
     const time = event.target.getCurrentTime()
 
     // 1: playing, 2: paused, 3: buffering
-    if (state === 1) setStore.syncPlayback('playing', time, true)
-    if (state === 2) setStore.syncPlayback('paused', time, true)
-    if (state === 3) setStore.syncPlayback('buffering', time, true)
+    if (state === 1) store.syncPlayback('playing', time, true)
+    if (state === 2) store.syncPlayback('paused', time, true)
+    if (state === 3) store.syncPlayback('buffering', time, true)
   }
 
   // 4. Listen to Store Changes (Remote Events)

@@ -26,8 +26,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
+        sans: ['Roobert', 'Inter var', 'system-ui', 'sans-serif'],
+        display: ['Roobert', 'Inter var', 'system-ui', 'sans-serif'],
       },
       colors: {
         bg: '#F7F8FA',
@@ -35,11 +35,15 @@ export default {
         'surface-alt': '#ECEEF2',
         'text-primary': '#1A1C22',
         'text-secondary': '#6B7280',
+        'text-muted': '#9CA3AF',
         bobflix: {
+          50: '#EEF3FF',
           100: '#D6E4FF',
+          300: '#A5BDF9',
           400: '#6B91F7',
           500: '#3B6CF4',
           700: '#1A3A8F',
+          900: '#0D1B3E',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

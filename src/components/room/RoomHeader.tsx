@@ -5,7 +5,7 @@ import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function RoomHeader({ roomId }: { roomId: string }) {
   const [copied, setCopied] = useState(false)
-  const [store, setStore] = useRoomStore()
+  const [store] = useRoomStore()
   const [urlInput, setUrlInput] = useState('')
 
   const handleCopy = () => {
@@ -17,7 +17,7 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
   const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (urlInput.trim()) {
-      setStore.setVideoUrl(urlInput.trim())
+      store.setVideoUrl(urlInput.trim())
       setUrlInput('')
     }
   }

@@ -1,4 +1,6 @@
 import { createStore } from './main'
+import { supabase } from '@/lib/supabaseClient'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export type User = {
   id: string
@@ -43,60 +45,202 @@ interface RoomState {
   notifications: Notification[]
   setCurrentUser: (nickname: string) => void
   joinRoom: (roomId: string) => void
+  leaveRoom: () => void
   setVideoUrl: (url: string) => void
   sendMessage: (text: string) => void
   sendReaction: (emoji: string) => void
   syncPlayback: (status: PlaybackState['status'], time: number, isLocal: boolean) => void
   addNotification: (text: string) => void
-  // Mock methods for simulation
-  _simulateRemoteAction: () => void
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
+
+const DEFAULT_VIDEO = 'https://www.youtube.com/watch?v=jfKfPfyJRdk'
+
+let channel: RealtimeChannel | null = null
 
 export const useRoomStore = createStore<RoomState>((set, get) => ({
   currentUser: null,
   roomId: null,
   participants: [],
   messages: [],
-  videoUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', // Default Lofi Girl
+  videoUrl: DEFAULT_VIDEO,
   playback: { status: 'unstarted', time: 0, updatedBy: '' },
   reactions: [],
   notifications: [],
 
   setCurrentUser: (nickname) => {
-    set((state) => ({
-      currentUser: { id: generateId(), nickname },
-    }))
+    set(() => ({ currentUser: { id: generateId(), nickname } }))
   },
 
-  joinRoom: (roomId) => {
+  joinRoom: async (roomId: string) => {
     const user = get().currentUser
     if (!user) return
 
+    if (channel) {
+      await supabase.removeChannel(channel)
+      channel = null
+    }
+
+    // Ensure room exists
+    await supabase.from('rooms').upsert(
+      { id: roomId },
+      { onConflict: 'id', ignoreDuplicates: true },
+    )
+
+    // Load room, messages and playback in parallel
+    const [roomRes, msgsRes, pbRes] = await Promise.all([
+      supabase.from('rooms').select('video_url').eq('id', roomId).single(),
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true })
+        .limit(100),
+      supabase.from('playback_state').select('*').eq('room_id', roomId).single(),
+    ])
+
+    const formattedMessages: Message[] = (msgsRes.data || []).map((m: any) => ({
+      id: m.id,
+      senderId: m.sender_id,
+      senderName: m.sender_name,
+      text: m.text,
+      time: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    }))
+
     set(() => ({
       roomId,
-      participants: [{ id: user.id, nickname: user.nickname, state: 'ready' }],
-      messages: [],
+      videoUrl: roomRes.data?.video_url || DEFAULT_VIDEO,
+      messages: formattedMessages,
+      playback: pbRes.data
+        ? { status: pbRes.data.status, time: pbRes.data.time, updatedBy: pbRes.data.updated_by }
+        : { status: 'unstarted' as const, time: 0, updatedBy: '' },
+      participants: [],
       reactions: [],
       notifications: [],
     }))
 
-    // Start simulation when joining
-    get()._simulateRemoteAction()
+    // --- Realtime subscriptions ---
+    channel = supabase.channel(`room:${roomId}`)
+
+    // Presence: participants
+    channel.on('presence', { event: 'sync' }, () => {
+      const ps = channel!.presenceState<{ user_id: string; nickname: string; state: string }>()
+      const users: User[] = []
+      for (const key of Object.keys(ps)) {
+        for (const p of ps[key]) {
+          users.push({ id: p.user_id, nickname: p.nickname, state: (p.state as User['state']) || 'ready' })
+        }
+      }
+      set(() => ({ participants: users }))
+    })
+
+    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+      for (const p of newPresences as any[]) {
+        if (p.user_id !== user.id) {
+          get().addNotification(`${p.nickname} entrou na sala`)
+        }
+      }
+    })
+
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+      for (const p of leftPresences as any[]) {
+        get().addNotification(`${p.nickname} saiu da sala`)
+      }
+    })
+
+    // Postgres Changes: new messages
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}` },
+      (payload) => {
+        const m = payload.new as any
+        if (m.sender_id === get().currentUser?.id) return
+        const msg: Message = {
+          id: m.id,
+          senderId: m.sender_id,
+          senderName: m.sender_name,
+          text: m.text,
+          time: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        }
+        set((state) => ({ messages: [...state.messages, msg] }))
+      },
+    )
+
+    // Postgres Changes: playback sync
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'playback_state', filter: `room_id=eq.${roomId}` },
+      (payload) => {
+        const pb = payload.new as any
+        if (pb.updated_by === get().currentUser?.id) return
+        set(() => ({ playback: { status: pb.status, time: pb.time, updatedBy: pb.updated_by } }))
+        if (pb.status === 'playing') get().addNotification('Alguém deu play')
+        if (pb.status === 'paused') get().addNotification('Alguém pausou')
+      },
+    )
+
+    // Postgres Changes: room video URL
+    channel.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+      (payload) => {
+        const r = payload.new as any
+        if (r.video_url !== get().videoUrl) {
+          set(() => ({ videoUrl: r.video_url }))
+          get().addNotification('O vídeo foi alterado')
+        }
+      },
+    )
+
+    // Broadcast: ephemeral reactions
+    channel.on('broadcast', { event: 'reaction' }, ({ payload }) => {
+      if (payload.userId === get().currentUser?.id) return
+      const reaction: Reaction = { id: payload.id, emoji: payload.emoji, userId: payload.userId, xOffset: payload.xOffset }
+      set((state) => ({ reactions: [...state.reactions, reaction] }))
+      setTimeout(() => {
+        set((state) => ({ reactions: state.reactions.filter((r) => r.id !== reaction.id) }))
+      }, 2000)
+    })
+
+    await channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel!.track({ user_id: user.id, nickname: user.nickname, state: 'ready' })
+      }
+    })
+  },
+
+  leaveRoom: () => {
+    if (channel) {
+      supabase.removeChannel(channel)
+      channel = null
+    }
+    set(() => ({
+      roomId: null,
+      participants: [],
+      messages: [],
+      reactions: [],
+      notifications: [],
+      playback: { status: 'unstarted' as const, time: 0, updatedBy: '' },
+    }))
   },
 
   setVideoUrl: (url) => {
+    const roomId = get().roomId
+    if (!roomId) return
     set(() => ({
       videoUrl: url,
-      playback: { status: 'unstarted', time: 0, updatedBy: get().currentUser?.id || '' },
+      playback: { status: 'unstarted' as const, time: 0, updatedBy: get().currentUser?.id || '' },
     }))
+    supabase.from('rooms').update({ video_url: url }).eq('id', roomId).then()
     get().addNotification(`${get().currentUser?.nickname} alterou o vídeo`)
   },
 
   sendMessage: (text) => {
     const user = get().currentUser
-    if (!user) return
+    const roomId = get().roomId
+    if (!user || !roomId) return
+
     const newMsg: Message = {
       id: generateId(),
       senderId: user.id,
@@ -105,40 +249,40 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     }
     set((state) => ({ messages: [...state.messages, newMsg] }))
+    supabase.from('messages').insert({ room_id: roomId, sender_id: user.id, sender_name: user.nickname, text }).then()
   },
 
   sendReaction: (emoji) => {
     const user = get().currentUser
     if (!user) return
-    const reaction: Reaction = {
-      id: generateId(),
-      emoji,
-      userId: user.id,
-      xOffset: Math.random() * 40 - 20,
-    }
+    const reaction: Reaction = { id: generateId(), emoji, userId: user.id, xOffset: Math.random() * 40 - 20 }
     set((state) => ({ reactions: [...state.reactions, reaction] }))
-
-    // Auto remove reaction after animation
     setTimeout(() => {
       set((state) => ({ reactions: state.reactions.filter((r) => r.id !== reaction.id) }))
     }, 2000)
+    channel?.send({ type: 'broadcast', event: 'reaction', payload: reaction })
   },
 
   syncPlayback: (status, time, isLocal) => {
     const user = get().currentUser
-    if (!user) return
+    const roomId = get().roomId
+    if (!user || !roomId) return
 
     const currentState = get().playback
-    // Prevent redundant syncs
     if (currentState.status === status && Math.abs(currentState.time - time) < 2) return
 
-    set(() => ({
-      playback: { status, time, updatedBy: isLocal ? user.id : 'remote' },
-    }))
+    set(() => ({ playback: { status, time, updatedBy: isLocal ? user.id : 'remote' } }))
 
     if (isLocal) {
       if (status === 'playing') get().addNotification(`${user.nickname} deu play`)
       if (status === 'paused') get().addNotification(`${user.nickname} pausou`)
+      supabase.from('playback_state').upsert({
+        room_id: roomId,
+        status,
+        time,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      }).then()
     }
   },
 
@@ -148,59 +292,5 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     setTimeout(() => {
       set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) }))
     }, 3000)
-  },
-
-  // --- MOCK SIMULATION TO MAKE APP FEEL ALIVE ---
-  _simulateRemoteAction: () => {
-    let mockInterval: any
-
-    const mockUsers = [
-      { id: 'u1', nickname: 'Ana', state: 'ready' as const },
-      { id: 'u2', nickname: 'João', state: 'ready' as const },
-    ]
-
-    setTimeout(() => {
-      // Ana joins
-      set((state) => ({ participants: [...state.participants, mockUsers[0]] }))
-      get().addNotification('Ana entrou na sala')
-
-      setTimeout(() => {
-        // Ana says hi
-        const msg: Message = {
-          id: generateId(),
-          senderId: 'u1',
-          senderName: 'Ana',
-          text: 'Oie! Cheguei 🍿',
-          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        }
-        set((state) => ({ messages: [...state.messages, msg] }))
-      }, 3000)
-
-      setTimeout(() => {
-        // João joins
-        set((state) => ({ participants: [...state.participants, mockUsers[1]] }))
-        get().addNotification('João entrou na sala')
-      }, 8000)
-
-      // Random remote reactions
-      mockInterval = setInterval(() => {
-        if (Math.random() > 0.7) {
-          const emojis = ['👍', '❤️', '😂', '😮']
-          const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]
-          const reaction: Reaction = {
-            id: generateId(),
-            emoji: randomEmoji,
-            userId: mockUsers[0].id,
-            xOffset: Math.random() * 40 - 20,
-          }
-          set((state) => ({ reactions: [...state.reactions, reaction] }))
-          setTimeout(() => {
-            set((state) => ({ reactions: state.reactions.filter((r) => r.id !== reaction.id) }))
-          }, 2000)
-        }
-      }, 5000)
-    }, 2000)
-
-    // Cleanup not fully implemented for brevity, but interval runs in background
   },
 }))

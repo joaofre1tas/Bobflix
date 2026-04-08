@@ -7,19 +7,19 @@ import logoImg from '@/assets/doaskdp-03f16.png'
 export default function Index() {
   const [nickname, setNickname] = useState('')
   const [roomCode, setRoomCode] = useState('')
-  const [, setStore] = useRoomStore()
+  const [store] = useRoomStore()
   const navigate = useNavigate()
 
   const handleCreateRoom = () => {
     if (!nickname.trim()) return
-    setStore(() => ({ currentUser: nickname }))
+    store.setCurrentUser(nickname.trim())
     const code = `BF-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
     navigate(`/sala/${code}`)
   }
 
   const handleJoinRoom = () => {
     if (!nickname.trim() || !roomCode.trim()) return
-    setStore(() => ({ currentUser: nickname }))
+    store.setCurrentUser(nickname.trim())
     navigate(`/sala/${roomCode.toUpperCase()}`)
   }
 

@@ -14,10 +14,8 @@ export default function Room() {
   const [store] = useRoomStore()
   const [showMobileChat, setShowMobileChat] = useState(false)
 
-  // Initialization check
   useEffect(() => {
     if (!store.currentUser) {
-      // Small prompt if user bypassed the home screen
       const name = prompt('Bem-vindo! Qual o seu apelido?')
       if (name) {
         store.setCurrentUser(name)
@@ -29,6 +27,10 @@ export default function Room() {
       store.joinRoom(roomId)
     }
   }, [roomId, store.currentUser, navigate, store.roomId, store.setCurrentUser, store.joinRoom])
+
+  useEffect(() => {
+    return () => { store.leaveRoom() }
+  }, [store.leaveRoom])
 
   if (!store.currentUser || !store.roomId) {
     return <div className="flex-1 flex items-center justify-center">Carregando sala...</div>

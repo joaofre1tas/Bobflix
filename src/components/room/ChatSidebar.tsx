@@ -3,20 +3,20 @@ import { useRoomStore } from '@/stores/useRoomStore'
 import { Send, Smile } from 'lucide-react'
 
 export default function ChatSidebar() {
-  const [store, setStore] = useRoomStore()
+  const [store] = useRoomStore()
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault()
     if (input.trim()) {
-      setStore.sendMessage(input.trim())
+      store.sendMessage(input.trim())
       setInput('')
     }
   }
 
   const handleReaction = (emoji: string) => {
-    setStore.sendReaction(emoji)
+    store.sendReaction(emoji)
   }
 
   // Auto-scroll chat
