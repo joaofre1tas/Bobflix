@@ -30,13 +30,13 @@ export default function Index() {
         <div className="space-y-6 flex flex-col items-center">
           <img src={logoImg} alt="Bobflix" className="h-16 md:h-20 object-contain" />
           <p className="text-text-secondary text-lg">
-            Assista vídeos em perfeita sincronia com seus amigos.
+            Assista vídeos em perfeita sincronia com o seu amor 💙
           </p>
         </div>
 
         {/* User Setup */}
         <div className="max-w-md mx-auto">
-          <label className="block text-sm font-medium text-text-secondary mb-2 text-left ml-2">
+          <label className="block text-sm font-medium text-text-secondary mb-2 ml-2 text-center">
             Como você quer ser chamado?
           </label>
           <input
