@@ -9,7 +9,7 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
   const [urlInput, setUrlInput] = useState('')
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`https://bobflix.app/sala/${roomId}`)
+    navigator.clipboard.writeText(roomId)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -59,7 +59,7 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
           ) : (
             <Copy size={16} className="text-text-secondary" />
           )}
-          <span className="hidden sm:inline">{copied ? 'Copiado' : 'Copiar Link'}</span>
+          <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Código'}</span>
         </button>
       </div>
     </header>

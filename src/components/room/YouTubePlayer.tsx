@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRoomStore } from '@/stores/useRoomStore'
+import { Film } from 'lucide-react'
 
-// Extend window for YT API
 declare global {
   interface Window {
     YT: any
@@ -21,78 +21,68 @@ export default function YouTubePlayer() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [store] = useRoomStore()
   const [isReady, setIsReady] = useState(false)
+  const [ytLoaded, setYtLoaded] = useState(false)
 
-  // 1. Load YT API Script
+  const videoId = extractVideoId(store.videoUrl)
+
   useEffect(() => {
-    const loadYT = () => {
-      if (window.YT && window.YT.Player) {
-        initPlayer()
-        return
-      }
-      window.onYouTubeIframeAPIReady = () => initPlayer()
-      if (!document.getElementById('yt-api-script')) {
-        const tag = document.createElement('script')
-        tag.id = 'yt-api-script'
-        tag.src = 'https://www.youtube.com/iframe_api'
-        document.body.appendChild(tag)
-      }
+    if (window.YT && window.YT.Player) {
+      setYtLoaded(true)
+      return
     }
-    loadYT()
-
-    return () => {
-      if (playerRef.current) playerRef.current.destroy()
+    window.onYouTubeIframeAPIReady = () => setYtLoaded(true)
+    if (!document.getElementById('yt-api-script')) {
+      const tag = document.createElement('script')
+      tag.id = 'yt-api-script'
+      tag.src = 'https://www.youtube.com/iframe_api'
+      document.body.appendChild(tag)
     }
-  }, []) // Empty dependency to load script once
+  }, [])
 
-  // 2. Initialize Player
-  const initPlayer = () => {
-    if (!containerRef.current) return
-    const videoId = extractVideoId(store.videoUrl) || 'jfKfPfyJRdk' // default fallback
+  useEffect(() => {
+    if (!ytLoaded || !videoId || !containerRef.current) return
+    if (playerRef.current) {
+      playerRef.current.destroy()
+      playerRef.current = null
+      setIsReady(false)
+    }
 
     playerRef.current = new window.YT.Player(containerRef.current, {
       videoId,
       width: '100%',
       height: '100%',
-      playerVars: {
-        autoplay: 0,
-        controls: 1,
-        rel: 0,
-        modestbranding: 1,
-      },
+      playerVars: { autoplay: 0, controls: 1, rel: 0, modestbranding: 1 },
       events: {
         onReady: () => setIsReady(true),
-        onStateChange: handlePlayerStateChange,
+        onStateChange: (event: any) => {
+          const state = event.data
+          const time = event.target.getCurrentTime()
+          if (state === 1) store.syncPlayback('playing', time, true)
+          if (state === 2) store.syncPlayback('paused', time, true)
+          if (state === 3) store.syncPlayback('buffering', time, true)
+        },
       },
     })
-  }
 
-  // 3. Handle Local Player Events (Sending to Store)
-  const handlePlayerStateChange = (event: any) => {
-    const state = event.data
-    const time = event.target.getCurrentTime()
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy()
+        playerRef.current = null
+        setIsReady(false)
+      }
+    }
+  }, [ytLoaded, videoId])
 
-    // 1: playing, 2: paused, 3: buffering
-    if (state === 1) store.syncPlayback('playing', time, true)
-    if (state === 2) store.syncPlayback('paused', time, true)
-    if (state === 3) store.syncPlayback('buffering', time, true)
-  }
-
-  // 4. Listen to Store Changes (Remote Events)
   useEffect(() => {
     if (!isReady || !playerRef.current) return
-
     const { status, time, updatedBy } = store.playback
-
-    // Ignore updates made by us to avoid echo
     if (updatedBy === store.currentUser?.id) return
 
     const currentTime = playerRef.current.getCurrentTime() || 0
     const timeDiff = Math.abs(currentTime - time)
 
-    // Sync state
     if (status === 'playing') {
       playerRef.current.playVideo()
-      // Snap to sync if far behind/ahead
       if (timeDiff > 2) playerRef.current.seekTo(time, true)
     } else if (status === 'paused') {
       playerRef.current.pauseVideo()
@@ -100,16 +90,19 @@ export default function YouTubePlayer() {
     }
   }, [store.playback, isReady])
 
-  // 5. Handle URL changes
-  useEffect(() => {
-    if (isReady && playerRef.current) {
-      const currentUrl = playerRef.current.getVideoUrl()
-      const newId = extractVideoId(store.videoUrl)
-      if (newId && !currentUrl.includes(newId)) {
-        playerRef.current.loadVideoById(newId)
-      }
-    }
-  }, [store.videoUrl, isReady])
+  if (!videoId) {
+    return (
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 bg-black/5">
+        <div className="w-16 h-16 rounded-full bg-bobflix-50 flex items-center justify-center">
+          <Film size={32} className="text-bobflix-500" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-lg font-medium text-text-primary">Nenhum vídeo selecionado</p>
+          <p className="text-sm text-text-secondary">Cole um link do YouTube no campo acima para começar</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="absolute inset-0 w-full h-full">

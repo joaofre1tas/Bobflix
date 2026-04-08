@@ -55,7 +55,7 @@ interface RoomState {
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
-const DEFAULT_VIDEO = 'https://www.youtube.com/watch?v=jfKfPfyJRdk'
+const DEFAULT_VIDEO = ''
 
 let channel: RealtimeChannel | null = null
 
