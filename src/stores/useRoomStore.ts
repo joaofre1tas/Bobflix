@@ -81,6 +81,7 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       is_private: !!password,
       password: password || null,
     })
+    await get().joinRoom(roomId)
   },
 
   joinRoom: async (roomId: string) => {
