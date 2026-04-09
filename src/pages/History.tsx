@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
-import { ArrowLeft, Heart, Film, Play, Calendar } from 'lucide-react'
+import { ArrowLeft, Heart, Film, Play, Calendar, Star } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 interface HistoryEntry {
@@ -10,6 +10,7 @@ interface HistoryEntry {
   video_url: string
   video_title: string
   watched_at: string
+  partner_id: string | null
   partner_name: string | null
   partner_avatar: string | null
 }
@@ -77,6 +78,7 @@ export default function History() {
         video_url: d.video_url,
         video_title: d.video_title,
         watched_at: d.watched_at,
+        partner_id: d.watched_with || null,
         partner_name: d.watched_with ? partnerMap[d.watched_with]?.name ?? null : null,
         partner_avatar: d.watched_with ? partnerMap[d.watched_with]?.avatar ?? null : null,
       })))
@@ -115,6 +117,12 @@ export default function History() {
               Cada vídeo que vocês assistiram juntos, guardado aqui com carinho
             </p>
           </div>
+          <Link
+            to="/retrospectiva"
+            className="inline-flex items-center gap-2 rounded-full bg-bobflix-900 hover:bg-black text-white px-5 py-2.5 text-sm font-medium transition-all hover:shadow-lg mt-2"
+          >
+            <Star size={14} /> Ver retrospectiva
+          </Link>
         </div>
 
         {loading ? (
@@ -185,15 +193,19 @@ export default function History() {
                           </h3>
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-xs text-text-secondary">{formatDate(entry.watched_at)}</span>
-                            {entry.partner_name && (
-                              <span className="flex items-center gap-1.5 text-xs text-bobflix-700 bg-bobflix-50 px-2.5 py-1 rounded-full">
+                            {entry.partner_name && entry.partner_id && (
+                              <Link
+                                to={`/parceiro/${entry.partner_id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1.5 text-xs text-bobflix-700 bg-bobflix-50 hover:bg-bobflix-100 px-2.5 py-1 rounded-full transition-colors"
+                              >
                                 {entry.partner_avatar ? (
                                   <img src={entry.partner_avatar} alt="" className="w-4 h-4 rounded-full" />
                                 ) : (
                                   <Heart size={10} className="text-bobflix-500" />
                                 )}
                                 com {entry.partner_name}
-                              </span>
+                              </Link>
                             )}
                           </div>
                         </div>

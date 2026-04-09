@@ -349,6 +349,12 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
             video_title: '',
             watched_with: user.id,
           }).then()
+          // Auto-create partnership (ignore if already exists)
+          const [a, b] = [user.id, partner.id].sort()
+          supabase.from('partnerships').upsert(
+            { user_a: a, user_b: b },
+            { onConflict: 'user_a,user_b', ignoreDuplicates: true },
+          ).then()
         }
       }
     }

@@ -45,7 +45,8 @@ export default function Index() {
           <img src={logoImg} alt="Bobflix" className="h-14 md:h-16 mx-auto" />
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl font-semibold text-text-primary tracking-tight">
-              {greeting()}, {profile?.display_name || 'você'} 💙
+              {greeting()}, {profile?.display_name || 'você'}{' '}
+              <Heart size={32} className="inline text-bobflix-500 fill-bobflix-500 -mt-1" />
             </h1>
             <p className="text-text-secondary text-base max-w-md mx-auto">
               Escolha o que fazer agora — criar uma sala nova ou entrar numa que já existe.

@@ -10,6 +10,9 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Profile from './pages/Profile'
 import History from './pages/History'
+import Partner from './pages/Partner'
+import Messages from './pages/Messages'
+import Retrospective from './pages/Retrospective'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -27,6 +30,9 @@ const App = () => (
             <Route path="/sala/:roomId" element={<ProtectedRoute><Room /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/historico" element={<ProtectedRoute><History /></ProtectedRoute>} />
+            <Route path="/parceiro/:id" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
+            <Route path="/mensagens/:id" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/retrospectiva" element={<ProtectedRoute><Retrospective /></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
