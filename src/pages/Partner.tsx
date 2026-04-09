@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
-import { ArrowLeft, Heart, MessageCircle, Send, Play, Plus, Trash2, BookmarkPlus, Calendar, Film, Clock } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Send, Play, Plus, Trash2, BookmarkPlus, Calendar, Film, Star, Unlink } from 'lucide-react'
 import type { Profile } from '@/lib/AuthProvider'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
@@ -25,60 +25,66 @@ function formatRelative(iso: string) {
 }
 
 export default function Partner() {
-  const { id: partnerId } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, profile: myProfile } = useAuth()
+  const navigate = useNavigate()
   const [partner, setPartner] = useState<Profile | null>(null)
+  const [partnerId, setPartnerId] = useState<string | null>(null)
   const [since, setSince] = useState<string | null>(null)
+  const [partnershipId, setPartnershipId] = useState<string | null>(null)
   const [totalVideos, setTotalVideos] = useState(0)
   const [history, setHistory] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
   const [newNote, setNewNote] = useState('')
   const [wishlist, setWishlist] = useState<any[]>([])
   const [newWish, setNewWish] = useState('')
-  const [partnershipId, setPartnershipId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [confirmUnlink, setConfirmUnlink] = useState(false)
 
   useEffect(() => {
-    if (!user || !partnerId) return
+    if (!user) return
     const load = async () => {
-      // Load partner profile
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', partnerId).single()
+      // Find the partnership
+      const { data: pship } = await supabase.from('partnerships')
+        .select('*')
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+        .limit(1)
+        .single()
+
+      if (!pship) {
+        setLoading(false)
+        return
+      }
+
+      setPartnershipId(pship.id)
+      setSince(pship.since)
+      const pid = pship.user_a === user.id ? pship.user_b : pship.user_a
+      setPartnerId(pid)
+
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', pid).single()
       if (prof) setPartner({ id: prof.id, display_name: prof.display_name, avatar_url: prof.avatar_url })
 
-      // Load partnership
-      const [a, b] = [user.id, partnerId].sort()
-      const { data: pship } = await supabase.from('partnerships')
-        .select('*').eq('user_a', a).eq('user_b', b).single()
-      if (pship) {
-        setPartnershipId(pship.id)
-        setSince(pship.since)
+      // Wishlist
+      const { data: wl } = await supabase.from('wishlist')
+        .select('*').eq('partnership_id', pship.id).order('created_at', { ascending: false })
+      if (wl) setWishlist(wl)
 
-        // Load wishlist
-        const { data: wl } = await supabase.from('wishlist')
-          .select('*').eq('partnership_id', pship.id).order('created_at', { ascending: false })
-        if (wl) setWishlist(wl)
-      }
-
-      // Load watch history together
+      // Watch history together
       const { data: hist } = await supabase.from('watch_history')
-        .select('*').eq('user_id', user.id).eq('watched_with', partnerId)
+        .select('*').eq('user_id', user.id).eq('watched_with', pid)
         .order('watched_at', { ascending: false }).limit(20)
-      if (hist) {
-        setHistory(hist)
-        setTotalVideos(hist.length)
-      }
+      if (hist) { setHistory(hist); setTotalVideos(hist.length) }
 
-      // Load love notes
+      // Love notes
       const { data: n } = await supabase.from('love_notes')
         .select('*')
-        .or(`and(from_user.eq.${user.id},to_user.eq.${partnerId}),and(from_user.eq.${partnerId},to_user.eq.${user.id})`)
+        .or(`and(from_user.eq.${user.id},to_user.eq.${pid}),and(from_user.eq.${pid},to_user.eq.${user.id})`)
         .order('created_at', { ascending: false }).limit(20)
       if (n) setNotes(n)
 
       setLoading(false)
     }
     load()
-  }, [user, partnerId])
+  }, [user])
 
   const handleSendNote = async () => {
     if (!newNote.trim() || !user || !partnerId) return
@@ -99,32 +105,46 @@ export default function Partner() {
     setWishlist(wishlist.filter(w => w.id !== id))
   }
 
+  const handleUnlink = async () => {
+    if (!partnershipId) return
+    await supabase.from('partnerships').delete().eq('id', partnershipId)
+    navigate('/')
+  }
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-3 border-bobflix-500 border-t-transparent rounded-full animate-spin" /></div>
   }
 
   if (!partner) {
-    return <div className="flex-1 flex items-center justify-center text-text-secondary">Parceiro não encontrado</div>
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+        <Heart size={48} className="text-bobflix-300" />
+        <h1 className="text-xl font-semibold text-text-primary">Nenhum vínculo ainda</h1>
+        <p className="text-sm text-text-secondary text-center max-w-xs">Assista um vídeo com alguém especial para criar o vínculo automaticamente.</p>
+        <Link to="/" className="text-bobflix-500 hover:text-bobflix-400 text-sm font-medium">Voltar para a home</Link>
+      </div>
+    )
   }
 
   return (
     <div className="flex-1 flex flex-col items-center p-6 animate-fade-in min-h-screen">
       <div className="w-full max-w-2xl space-y-8">
-        {/* Nav */}
         <div className="flex items-center justify-between">
-          <Link to="/historico" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+          <Link to="/" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
             <ArrowLeft size={18} /><span className="text-sm font-medium">Voltar</span>
           </Link>
           <img src={logoImg} alt="Bobflix" className="h-8" />
         </div>
 
-        {/* Hero: couple header */}
+        {/* Couple header */}
         <div className="bg-surface rounded-[24px] shadow-subtle border border-surface-alt/50 p-8 text-center space-y-5">
           <div className="flex items-center justify-center gap-4">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-bobflix-50 border-4 border-surface shadow-lg flex items-center justify-center">
-              {/* Current user avatar */}
-              <img src={supabase.auth.getUser ? '' : ''} alt="" className="w-full h-full object-cover hidden" />
-              <span className="text-2xl font-semibold text-bobflix-500">Eu</span>
+              {myProfile?.avatar_url ? (
+                <img src={myProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-semibold text-bobflix-500">{myProfile?.display_name?.[0]?.toUpperCase() || '?'}</span>
+              )}
             </div>
             <Heart size={28} className="text-bobflix-500 fill-bobflix-500 shrink-0" />
             <div className="w-20 h-20 rounded-full overflow-hidden bg-bobflix-50 border-4 border-surface shadow-lg flex items-center justify-center">
@@ -144,7 +164,6 @@ export default function Partner() {
             )}
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="bg-bobflix-50 rounded-2xl p-4 text-center">
               <p className="text-3xl font-bold text-bobflix-700">{totalVideos}</p>
@@ -156,12 +175,26 @@ export default function Partner() {
             </div>
           </div>
 
-          <Link
-            to={`/mensagens/${partnerId}`}
-            className="inline-flex items-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 text-white px-6 py-3 text-sm font-medium transition-all hover:shadow-lg hover:shadow-bobflix-500/20"
-          >
-            <MessageCircle size={16} /> Abrir conversa
-          </Link>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <Link
+              to={`/mensagens/${partnerId}`}
+              className="inline-flex items-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 text-white px-5 py-2.5 text-sm font-medium transition-all hover:shadow-lg hover:shadow-bobflix-500/20"
+            >
+              <MessageCircle size={15} /> Conversar
+            </Link>
+            <Link
+              to="/retrospectiva"
+              className="inline-flex items-center gap-2 rounded-full bg-bobflix-900 hover:bg-black text-white px-5 py-2.5 text-sm font-medium transition-all hover:shadow-lg"
+            >
+              <Star size={15} /> Retrospectiva
+            </Link>
+            <Link
+              to="/historico"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-surface-alt text-text-secondary hover:bg-surface-alt px-5 py-2.5 text-sm font-medium transition-all"
+            >
+              <Film size={15} /> Histórico
+            </Link>
+          </div>
         </div>
 
         {/* Love notes */}
@@ -214,7 +247,7 @@ export default function Partner() {
               <Plus size={14} />
             </button>
           </div>
-          {wishlist.length === 0 ? (
+          {wishlist.filter(w => !w.watched).length === 0 ? (
             <p className="text-sm text-text-secondary text-center py-4">Adicionem vídeos que querem assistir juntos!</p>
           ) : (
             <div className="space-y-2">
@@ -225,9 +258,7 @@ export default function Partner() {
                   <div key={w.id} className="flex items-center gap-3 p-2 rounded-xl bg-surface-alt">
                     {thumb && <img src={thumb} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0" />}
                     <span className="flex-1 text-sm text-text-primary truncate">{w.video_title || w.video_url}</span>
-                    <button onClick={() => handleRemoveWish(w.id)} className="text-text-secondary hover:text-red-500 transition-colors shrink-0">
-                      <Trash2 size={14} />
-                    </button>
+                    <button onClick={() => handleRemoveWish(w.id)} className="text-text-secondary hover:text-red-500 transition-colors shrink-0"><Trash2 size={14} /></button>
                   </div>
                 )
               })}
@@ -264,6 +295,26 @@ export default function Partner() {
                   </a>
                 )
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Unlink */}
+        <div className="pt-4 border-t border-surface-alt">
+          {!confirmUnlink ? (
+            <button
+              onClick={() => setConfirmUnlink(true)}
+              className="w-full flex items-center justify-center gap-2 text-text-secondary hover:text-red-500 text-sm font-medium transition-colors py-3"
+            >
+              <Unlink size={14} /> Desfazer vínculo
+            </button>
+          ) : (
+            <div className="text-center space-y-3">
+              <p className="text-sm text-red-500 font-medium">Tem certeza? O histórico será mantido, mas o vínculo será desfeito.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => setConfirmUnlink(false)} className="rounded-full border-2 border-surface-alt text-text-secondary px-5 py-2 text-sm font-medium hover:bg-surface-alt transition-colors">Cancelar</button>
+                <button onClick={handleUnlink} className="rounded-full bg-red-500 hover:bg-red-600 text-white px-5 py-2 text-sm font-medium transition-colors">Confirmar</button>
+              </div>
             </div>
           )}
         </div>

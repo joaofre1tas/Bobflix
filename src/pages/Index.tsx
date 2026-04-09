@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useRoomStore } from '@/stores/useRoomStore'
 import { useAuth } from '@/lib/AuthProvider'
-import { LogIn, Sparkles, Lock, User, History, Heart, Play } from 'lucide-react'
+import { supabase } from '@/lib/supabaseClient'
+import { LogIn, Sparkles, Lock, User, Heart, Play, LogOut } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function Index() {
@@ -10,14 +11,34 @@ export default function Index() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [store] = useRoomStore()
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const navigate = useNavigate()
+  const [partnerName, setPartnerName] = useState<string | null>(null)
+  const [hasPartner, setHasPartner] = useState(false)
 
   useEffect(() => {
     if (profile) {
       store.setCurrentUser(profile.id, profile.display_name, profile.avatar_url)
     }
   }, [profile])
+
+  useEffect(() => {
+    if (!user) return
+    const loadPartner = async () => {
+      const { data } = await supabase.from('partnerships')
+        .select('user_a, user_b')
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+        .limit(1)
+        .single()
+      if (data) {
+        setHasPartner(true)
+        const partnerId = data.user_a === user.id ? data.user_b : data.user_a
+        const { data: prof } = await supabase.from('profiles').select('display_name').eq('id', partnerId).single()
+        if (prof) setPartnerName(prof.display_name)
+      }
+    }
+    loadPartner()
+  }, [user])
 
   const handleCreateRoom = async () => {
     const code = `BF-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
@@ -30,6 +51,11 @@ export default function Index() {
     navigate(`/sala/${roomCode.toUpperCase()}`)
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
+
   const greeting = () => {
     const h = new Date().getHours()
     if (h < 12) return 'Bom dia'
@@ -40,7 +66,6 @@ export default function Index() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in min-h-screen">
       <div className="w-full max-w-3xl space-y-10">
-        {/* Hero section */}
         <div className="text-center space-y-5">
           <img src={logoImg} alt="Bobflix" className="h-14 md:h-16 mx-auto" />
           <div className="space-y-2">
@@ -54,7 +79,6 @@ export default function Index() {
           </div>
         </div>
 
-        {/* User bar */}
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link
             to="/perfil"
@@ -69,18 +93,27 @@ export default function Index() {
             </div>
             <span className="text-sm font-medium text-text-primary">{profile?.display_name || 'Meu perfil'}</span>
           </Link>
-          <Link
-            to="/historico"
-            className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
+
+          {hasPartner && (
+            <Link
+              to="/meu-amor"
+              className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
+            >
+              <Heart size={14} className="fill-bobflix-500 text-bobflix-500 group-hover:scale-110 transition-transform" />
+              {partnerName ? `Meu amor, ${partnerName}` : 'Meu amor'}
+            </Link>
+          )}
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 rounded-full bg-surface border border-surface-alt px-4 py-2.5 hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-text-secondary text-sm font-medium transition-all"
           >
-            <Heart size={14} className="group-hover:scale-110 transition-transform" />
-            Nosso Histórico
-          </Link>
+            <LogOut size={14} />
+            Sair
+          </button>
         </div>
 
-        {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Create room */}
           <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300">
             <div className="text-left space-y-3 mb-8">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-bobflix-500 to-bobflix-400 text-white flex items-center justify-center shadow-lg">
@@ -116,13 +149,11 @@ export default function Index() {
                 disabled={showPassword && !password.trim()}
                 className="w-full rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-all hover:shadow-lg hover:shadow-bobflix-500/20 flex items-center justify-center gap-2"
               >
-                <Play size={16} />
-                Criar nova sala
+                <Play size={16} /> Criar nova sala
               </button>
             </div>
           </div>
 
-          {/* Join room */}
           <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300">
             <div className="text-left space-y-3 mb-8">
               <div className="w-14 h-14 rounded-2xl bg-text-primary text-white flex items-center justify-center shadow-lg">
@@ -146,8 +177,7 @@ export default function Index() {
                 disabled={!roomCode.trim()}
                 className="w-full rounded-full bg-text-primary hover:bg-black disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-all hover:shadow-lg flex items-center justify-center gap-2"
               >
-                <LogIn size={16} />
-                Entrar na sala
+                <LogIn size={16} /> Entrar na sala
               </button>
             </div>
           </div>

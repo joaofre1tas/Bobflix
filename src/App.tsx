@@ -27,10 +27,10 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Signup />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/sala/:roomId" element={<ProtectedRoute><Room /></ProtectedRoute>} />
+            <Route path="/sala/:roomId" element={<Room />} />
             <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/historico" element={<ProtectedRoute><History /></ProtectedRoute>} />
-            <Route path="/parceiro/:id" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
+            <Route path="/meu-amor" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
             <Route path="/mensagens/:id" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/retrospectiva" element={<ProtectedRoute><Retrospective /></ProtectedRoute>} />
           </Route>

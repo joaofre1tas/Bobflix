@@ -25,12 +25,10 @@ function extractVideoId(url: string) {
 function computeStreak(dates: string[]) {
   if (dates.length === 0) return 0
   const unique = [...new Set(dates.map(d => new Date(d).toDateString()))].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-  let maxStreak = 1
-  let current = 1
+  let maxStreak = 1, current = 1
   for (let i = 1; i < unique.length; i++) {
     const diff = (new Date(unique[i]).getTime() - new Date(unique[i - 1]).getTime()) / (1000 * 60 * 60 * 24)
-    if (diff <= 1) { current++; maxStreak = Math.max(maxStreak, current) }
-    else current = 1
+    if (diff <= 1) { current++; maxStreak = Math.max(maxStreak, current) } else current = 1
   }
   return maxStreak
 }
@@ -43,22 +41,17 @@ export default function Retrospective() {
   useEffect(() => {
     if (!user) return
     const load = async () => {
-      const { data: history } = await supabase
-        .from('watch_history')
+      const { data: history } = await supabase.from('watch_history')
         .select('video_url, video_title, watched_at, watched_with')
-        .eq('user_id', user.id)
-        .order('watched_at', { ascending: true })
+        .eq('user_id', user.id).order('watched_at', { ascending: true })
 
       if (!history || history.length === 0) {
         setStats({ totalVideos: 0, totalMinutes: 0, topMonth: null, topMonthCount: 0, firstVideo: null, topPartner: null, streak: 0 })
-        setLoading(false)
-        return
+        setLoading(false); return
       }
 
       const totalVideos = history.length
       const totalMinutes = totalVideos * 12
-
-      // Top month
       const monthCounts: Record<string, number> = {}
       for (const h of history) {
         const d = new Date(h.watched_at)
@@ -68,16 +61,11 @@ export default function Retrospective() {
       const topMonthKey = Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0]
       const topMonth = topMonthKey ? MONTH_NAMES[parseInt(topMonthKey[0].split('-')[1])] : null
       const topMonthCount = topMonthKey ? topMonthKey[1] : 0
-
-      // First video
       const first = history[0]
       const firstVideo = first ? { url: first.video_url, date: first.watched_at, title: first.video_title } : null
 
-      // Top partner
       const partnerCounts: Record<string, number> = {}
-      for (const h of history) {
-        if (h.watched_with) partnerCounts[h.watched_with] = (partnerCounts[h.watched_with] || 0) + 1
-      }
+      for (const h of history) { if (h.watched_with) partnerCounts[h.watched_with] = (partnerCounts[h.watched_with] || 0) + 1 }
       let topPartner: Stats['topPartner'] = null
       const topPartnerId = Object.entries(partnerCounts).sort((a, b) => b[1] - a[1])[0]
       if (topPartnerId) {
@@ -85,26 +73,23 @@ export default function Retrospective() {
         if (prof) topPartner = { id: prof.id, name: prof.display_name, avatar: prof.avatar_url, count: topPartnerId[1] }
       }
 
-      // Streak
-      const streak = computeStreak(history.map(h => h.watched_at))
-
-      setStats({ totalVideos, totalMinutes, topMonth, topMonthCount, firstVideo, topPartner, streak })
+      setStats({ totalVideos, totalMinutes, topMonth, topMonthCount, firstVideo, topPartner, streak: computeStreak(history.map(h => h.watched_at)) })
       setLoading(false)
     }
     load()
   }, [user])
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center min-h-screen bg-bobflix-900"><div className="w-10 h-10 border-3 border-bobflix-500 border-t-transparent rounded-full animate-spin" /></div>
+    return <div className="flex-1 flex items-center justify-center"><div className="w-10 h-10 border-3 border-bobflix-500 border-t-transparent rounded-full animate-spin" /></div>
   }
 
   if (!stats || stats.totalVideos === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-screen bg-bobflix-900 text-white p-6">
-        <Film size={48} className="text-bobflix-400 mb-4" />
-        <h1 className="text-2xl font-semibold mb-2">Ainda não há dados</h1>
-        <p className="text-bobflix-300 text-sm text-center max-w-xs">Assista vídeos com alguém especial para desbloquear sua retrospectiva.</p>
-        <Link to="/" className="mt-6 text-bobflix-400 hover:text-bobflix-300 text-sm font-medium">Voltar para a home</Link>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+        <Film size={48} className="text-bobflix-300" />
+        <h1 className="text-xl font-semibold">Ainda não há dados</h1>
+        <p className="text-text-secondary text-sm text-center max-w-xs">Assista vídeos com alguém especial para desbloquear sua retrospectiva.</p>
+        <Link to="/" className="text-bobflix-500 hover:text-bobflix-400 text-sm font-medium">Voltar para a home</Link>
       </div>
     )
   }
@@ -112,51 +97,50 @@ export default function Retrospective() {
   const firstThumb = stats.firstVideo ? extractVideoId(stats.firstVideo.url) : null
 
   return (
-    <div className="min-h-screen bg-bobflix-900 text-white">
-      {/* Nav */}
-      <div className="flex items-center justify-between p-6">
-        <Link to="/historico" className="flex items-center gap-2 text-bobflix-300 hover:text-white transition-colors">
-          <ArrowLeft size={18} /><span className="text-sm font-medium">Voltar</span>
-        </Link>
-        <img src={logoImg} alt="Bobflix" className="h-8 brightness-0 invert" />
-      </div>
+    <div className="flex-1 flex flex-col items-center p-6 animate-fade-in min-h-screen">
+      <div className="w-full max-w-lg space-y-8">
+        <div className="flex items-center justify-between">
+          <Link to="/meu-amor" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+            <ArrowLeft size={18} /><span className="text-sm font-medium">Voltar</span>
+          </Link>
+          <img src={logoImg} alt="Bobflix" className="h-8" />
+        </div>
 
-      <div className="max-w-lg mx-auto px-6 pb-16 space-y-10">
         {/* Title */}
-        <div className="text-center space-y-3 pt-8">
-          <p className="text-bobflix-400 text-sm font-medium uppercase tracking-widest">Sua retrospectiva</p>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            Vocês assistiram<br />
-            <span className="text-bobflix-400">{stats.totalVideos} vídeos</span><br />
-            juntos
+        <div className="text-center space-y-3 pt-4">
+          <div className="w-16 h-16 rounded-full bg-bobflix-50 flex items-center justify-center mx-auto">
+            <Star size={32} className="text-bobflix-500" />
+          </div>
+          <p className="text-sm text-bobflix-500 font-medium uppercase tracking-widest">Sua retrospectiva</p>
+          <h1 className="text-4xl font-bold text-text-primary tracking-tight">
+            Vocês assistiram <span className="text-bobflix-500">{stats.totalVideos} vídeos</span> juntos
           </h1>
         </div>
 
-        {/* Stats cards */}
         <div className="space-y-4">
           {/* Total time */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-[20px] p-6 border border-white/10">
+          <div className="bg-surface rounded-[20px] shadow-subtle border border-surface-alt/50 p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-bobflix-500/20 flex items-center justify-center">
-                <Clock size={24} className="text-bobflix-400" />
+              <div className="w-12 h-12 rounded-2xl bg-bobflix-50 flex items-center justify-center shrink-0">
+                <Clock size={24} className="text-bobflix-500" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.totalMinutes} min</p>
-                <p className="text-sm text-bobflix-300">de vídeos assistidos juntos</p>
+                <p className="text-3xl font-bold text-text-primary">{stats.totalMinutes} min</p>
+                <p className="text-sm text-text-secondary">de vídeos assistidos juntos</p>
               </div>
             </div>
           </div>
 
           {/* Top month */}
           {stats.topMonth && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-[20px] p-6 border border-white/10">
+            <div className="bg-surface rounded-[20px] shadow-subtle border border-surface-alt/50 p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-bobflix-500/20 flex items-center justify-center">
-                  <Calendar size={24} className="text-bobflix-400" />
+                <div className="w-12 h-12 rounded-2xl bg-bobflix-50 flex items-center justify-center shrink-0">
+                  <Calendar size={24} className="text-bobflix-500" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{stats.topMonth}</p>
-                  <p className="text-sm text-bobflix-300">foi o mês mais intenso: {stats.topMonthCount} vídeos!</p>
+                  <p className="text-xl font-bold text-text-primary">{stats.topMonth}</p>
+                  <p className="text-sm text-text-secondary">foi o mês mais intenso: {stats.topMonthCount} vídeos!</p>
                 </div>
               </div>
             </div>
@@ -164,14 +148,14 @@ export default function Retrospective() {
 
           {/* Streak */}
           {stats.streak > 1 && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-[20px] p-6 border border-white/10">
+            <div className="bg-surface rounded-[20px] shadow-subtle border border-surface-alt/50 p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-bobflix-500/20 flex items-center justify-center">
-                  <Trophy size={24} className="text-bobflix-400" />
+                <div className="w-12 h-12 rounded-2xl bg-bobflix-50 flex items-center justify-center shrink-0">
+                  <Trophy size={24} className="text-bobflix-500" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">{stats.streak} dias</p>
-                  <p className="text-sm text-bobflix-300">foi o recorde de vocês assistindo seguidos!</p>
+                  <p className="text-3xl font-bold text-text-primary">{stats.streak} dias</p>
+                  <p className="text-sm text-text-secondary">foi o recorde de vocês assistindo seguidos!</p>
                 </div>
               </div>
             </div>
@@ -179,44 +163,41 @@ export default function Retrospective() {
 
           {/* Top partner */}
           {stats.topPartner && (
-            <Link to={`/parceiro/${stats.topPartner.id}`} className="block bg-gradient-to-r from-bobflix-500/20 to-bobflix-400/10 rounded-[20px] p-6 border border-bobflix-500/30 hover:border-bobflix-400/50 transition-colors">
+            <div className="bg-bobflix-50 rounded-[20px] border border-bobflix-100 p-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full overflow-hidden bg-bobflix-500/30 flex items-center justify-center border-2 border-bobflix-400/30">
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-surface border-2 border-bobflix-200 flex items-center justify-center shrink-0">
                   {stats.topPartner.avatar ? (
                     <img src={stats.topPartner.avatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <Heart size={20} className="text-bobflix-400" />
+                    <Heart size={20} className="text-bobflix-500" />
                   )}
                 </div>
                 <div>
-                  <p className="text-sm text-bobflix-300">Sua pessoa especial</p>
-                  <p className="text-xl font-bold">{stats.topPartner.name}</p>
-                  <p className="text-sm text-bobflix-300">{stats.topPartner.count} vídeos juntos</p>
+                  <p className="text-sm text-bobflix-700/70">Sua pessoa especial</p>
+                  <p className="text-xl font-bold text-bobflix-900">{stats.topPartner.name}</p>
+                  <p className="text-sm text-bobflix-700/70">{stats.topPartner.count} vídeos juntos</p>
                 </div>
-                <Star size={20} className="text-bobflix-400 ml-auto" />
               </div>
-            </Link>
+            </div>
           )}
 
           {/* First video */}
           {stats.firstVideo && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-[20px] overflow-hidden border border-white/10">
+            <div className="bg-surface rounded-[20px] shadow-subtle border border-surface-alt/50 overflow-hidden">
               <div className="p-4 pb-2">
-                <p className="text-xs text-bobflix-400 font-medium uppercase tracking-wider">Primeiro vídeo juntos</p>
-                <p className="text-[11px] text-bobflix-300 mt-0.5">{new Date(stats.firstVideo.date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p className="text-xs text-bobflix-500 font-medium uppercase tracking-wider">Primeiro vídeo juntos</p>
+                <p className="text-[11px] text-text-secondary mt-0.5">{new Date(stats.firstVideo.date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
               {firstThumb && (
                 <a href={stats.firstVideo.url} target="_blank" rel="noopener noreferrer" className="block relative group">
                   <img src={`https://img.youtube.com/vi/${firstThumb}/mqdefault.jpg`} alt="" className="w-full h-44 object-cover" />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play size={22} className="text-bobflix-900 ml-0.5" />
-                    </div>
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center"><Play size={22} className="text-text-primary ml-0.5" /></div>
                   </div>
                 </a>
               )}
               <div className="p-4 pt-2">
-                <p className="text-sm font-medium">{stats.firstVideo.title || 'Vídeo do YouTube'}</p>
+                <p className="text-sm font-medium text-text-primary">{stats.firstVideo.title || 'Vídeo do YouTube'}</p>
               </div>
             </div>
           )}
@@ -225,13 +206,8 @@ export default function Retrospective() {
         {/* Footer */}
         <div className="text-center space-y-4 pt-4">
           <Heart size={24} className="text-bobflix-500 fill-bobflix-500 mx-auto" />
-          <p className="text-sm text-bobflix-300">
-            Cada vídeo assistido junto é uma memória que vocês criaram.
-          </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 text-white px-6 py-3 text-sm font-medium transition-all"
-          >
+          <p className="text-sm text-text-secondary">Cada vídeo assistido junto é uma memória que vocês criaram.</p>
+          <Link to="/" className="inline-flex items-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 text-white px-6 py-3 text-sm font-medium transition-all">
             Criar mais memórias
           </Link>
         </div>

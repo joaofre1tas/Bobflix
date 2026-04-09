@@ -328,8 +328,9 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
         room_id: roomId, status, time, updated_by: user.id, updated_at: new Date().toISOString(),
       }).then()
 
-      // Record watch history on first play of a video
-      if (status === 'playing' && get().videoUrl && get().videoUrl !== lastRecordedVideo) {
+      // Record watch history on first play (skip for guests)
+      const isGuest = user.id.startsWith('guest-')
+      if (!isGuest && status === 'playing' && get().videoUrl && get().videoUrl !== lastRecordedVideo) {
         lastRecordedVideo = get().videoUrl
         const participants = get().participants.filter((p) => p.id !== user.id)
         const partner = participants.length > 0 ? participants[0] : null
