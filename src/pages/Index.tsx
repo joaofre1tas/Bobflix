@@ -33,11 +33,11 @@ export default function Index() {
         .select('user_a, user_b')
         .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
         .limit(1)
-        .single()
+        .maybeSingle()
       if (data) {
         setHasPartner(true)
         const partnerId = data.user_a === user.id ? data.user_b : data.user_a
-        const { data: prof } = await supabase.from('profiles').select('display_name').eq('id', partnerId).single()
+        const { data: prof } = await supabase.from('profiles').select('display_name').eq('id', partnerId).maybeSingle()
         if (prof) setPartnerName(prof.display_name)
       } else {
         setHasPartner(false)
@@ -99,7 +99,7 @@ export default function Index() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in min-h-screen">
+    <div className="flex-1 flex flex-col items-center p-6 animate-fade-in min-h-screen py-10 md:py-14">
       <div className="w-full max-w-3xl space-y-10">
         <div className="text-center space-y-5">
           <img src={logoImg} alt="Bobflix" className="h-14 md:h-16 mx-auto" />
@@ -139,6 +139,18 @@ export default function Index() {
             </Link>
           )}
 
+          {!hasPartner && user && (
+            <button
+              type="button"
+              onClick={handleCreateInviteLink}
+              disabled={inviteCreating}
+              className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700 disabled:opacity-60"
+            >
+              <Link2 size={14} className="text-bobflix-500 group-hover:scale-110 transition-transform" />
+              {inviteCreating ? 'Criando...' : 'Criar convite'}
+            </button>
+          )}
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-full bg-surface border border-surface-alt px-4 py-2.5 hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-text-secondary text-sm font-medium transition-all"
@@ -148,39 +160,24 @@ export default function Index() {
           </button>
         </div>
 
-        {!hasPartner && user && (
-          <div className="max-w-xl mx-auto rounded-[20px] border border-bobflix-100 bg-gradient-to-b from-bobflix-50/90 to-surface p-5 shadow-subtle space-y-3">
-            <p className="text-sm text-text-secondary text-center">
-              Ainda sem vínculo no Bobflix? Crie um convite e mande o link — a outra pessoa entra, faz login e aceita.
-            </p>
-            <div className="flex justify-center">
+        {!hasPartner && user && inviteLink && (
+          <div className="w-full max-w-xl mx-auto flex flex-col gap-2 -mt-4">
+            <p className="text-xs text-text-secondary text-center">Envie este link para quem você quer convidar:</p>
+            <div className="flex gap-2 items-stretch">
+              <input
+                readOnly
+                value={inviteLink}
+                className="flex-1 text-xs rounded-xl bg-surface border border-surface-alt px-3 py-2.5 text-text-primary truncate"
+              />
               <button
                 type="button"
-                onClick={handleCreateInviteLink}
-                disabled={inviteCreating}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 transition-colors"
+                onClick={copyInvite}
+                className="shrink-0 rounded-xl border border-surface-alt px-3 flex items-center justify-center hover:bg-surface-alt transition-colors"
+                title="Copiar link"
               >
-                <Link2 size={16} />
-                {inviteCreating ? 'Criando...' : 'Criar convite'}
+                {copiedInvite ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
               </button>
             </div>
-            {inviteLink && (
-              <div className="flex gap-2 items-stretch pt-1">
-                <input
-                  readOnly
-                  value={inviteLink}
-                  className="flex-1 text-xs rounded-xl bg-surface border border-surface-alt px-3 py-2.5 text-text-primary truncate"
-                />
-                <button
-                  type="button"
-                  onClick={copyInvite}
-                  className="shrink-0 rounded-xl border border-surface-alt px-3 flex items-center justify-center hover:bg-surface-alt transition-colors"
-                  title="Copiar link"
-                >
-                  {copiedInvite ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-                </button>
-              </div>
-            )}
           </div>
         )}
 
