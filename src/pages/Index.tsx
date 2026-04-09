@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useRoomStore } from '@/stores/useRoomStore'
 import { useAuth } from '@/lib/AuthProvider'
-import { LogIn, Sparkles, Lock, User, History } from 'lucide-react'
+import { LogIn, Sparkles, Lock, User, History, Heart, Play } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function Index() {
@@ -30,50 +30,72 @@ export default function Index() {
     navigate(`/sala/${roomCode.toUpperCase()}`)
   }
 
+  const greeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Bom dia'
+    if (h < 18) return 'Boa tarde'
+    return 'Boa noite'
+  }
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in">
-      <div className="w-full max-w-2xl text-center space-y-10">
-        <div className="space-y-6 flex flex-col items-center">
-          <img src={logoImg} alt="Bobflix" className="h-16 md:h-20 object-contain" />
-          <p className="text-text-secondary text-lg">
-            Assista videos em perfeita sincronia com o seu amor
-          </p>
+    <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in min-h-screen">
+      <div className="w-full max-w-3xl space-y-10">
+        {/* Hero section */}
+        <div className="text-center space-y-5">
+          <img src={logoImg} alt="Bobflix" className="h-14 md:h-16 mx-auto" />
+          <div className="space-y-2">
+            <h1 className="text-3xl md:text-4xl font-semibold text-text-primary tracking-tight">
+              {greeting()}, {profile?.display_name || 'voce'} <span className="inline-block animate-fade-in">💙</span>
+            </h1>
+            <p className="text-text-secondary text-base max-w-md mx-auto">
+              Escolha o que fazer agora — criar uma sala nova ou entrar numa que ja existe.
+            </p>
+          </div>
         </div>
 
-        {/* User info bar */}
-        <div className="flex items-center justify-center gap-3">
-          <Link to="/perfil" className="flex items-center gap-2.5 rounded-full bg-surface border border-surface-alt px-4 py-2.5 hover:shadow-subtle transition-all">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-bobflix-50 flex items-center justify-center">
+        {/* User bar */}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <Link
+            to="/perfil"
+            className="group flex items-center gap-2.5 rounded-full bg-surface border border-surface-alt pl-1.5 pr-5 py-1.5 hover:shadow-elevation transition-all"
+          >
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-bobflix-50 flex items-center justify-center ring-2 ring-bobflix-100 group-hover:ring-bobflix-300 transition-all">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <User size={14} className="text-bobflix-500" />
+                <User size={15} className="text-bobflix-500" />
               )}
             </div>
             <span className="text-sm font-medium text-text-primary">{profile?.display_name || 'Meu perfil'}</span>
           </Link>
-          <Link to="/historico" className="flex items-center gap-2 rounded-full bg-surface border border-surface-alt px-4 py-2.5 hover:shadow-subtle transition-all text-sm font-medium text-text-secondary">
-            <History size={14} />
-            Historico
+          <Link
+            to="/historico"
+            className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
+          >
+            <Heart size={14} className="group-hover:scale-110 transition-transform" />
+            Nosso historico
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col justify-between hover:shadow-elevation transition-shadow duration-300">
-            <div className="text-left space-y-2 mb-6">
-              <div className="w-12 h-12 rounded-full bg-bobflix-100 text-bobflix-500 flex items-center justify-center mb-4">
-                <Sparkles size={24} />
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Create room */}
+          <div className="relative bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-bobflix-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative text-left space-y-3 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-bobflix-500 to-bobflix-400 text-white flex items-center justify-center shadow-lg">
+                <Sparkles size={26} />
               </div>
-              <h2 className="text-2xl font-semibold">Criar Sala</h2>
-              <p className="text-text-secondary text-sm">
-                Crie um ambiente privado e convide quem voce ama para assistir.
+              <h2 className="text-2xl font-semibold text-text-primary">Criar Sala</h2>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Crie um espaco so de voces e compartilhe o codigo com quem ama.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className="relative space-y-3 mt-auto">
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className={`w-full flex items-center justify-center gap-2 rounded-full border-2 py-2.5 text-sm font-medium transition-colors ${
+                className={`w-full flex items-center justify-center gap-2 rounded-full border-2 py-2.5 text-sm font-medium transition-all ${
                   showPassword ? 'border-bobflix-500 bg-bobflix-50 text-bobflix-700' : 'border-surface-alt text-text-secondary hover:bg-surface-alt'
                 }`}
               >
@@ -86,43 +108,47 @@ export default function Index() {
                   placeholder="Defina uma senha..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-full border-2 border-surface-alt bg-surface-alt px-5 py-3 text-center focus:bg-surface focus:border-bobflix-500 outline-none transition-all"
+                  className="w-full rounded-full border-2 border-surface-alt bg-surface-alt px-5 py-3 text-center focus:bg-surface focus:border-bobflix-500 outline-none transition-all animate-fade-in"
                 />
               )}
               <button
                 onClick={handleCreateRoom}
                 disabled={showPassword && !password.trim()}
-                className="w-full rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-colors"
+                className="w-full rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-all hover:shadow-lg hover:shadow-bobflix-500/20 flex items-center justify-center gap-2"
               >
+                <Play size={16} />
                 Criar nova sala
               </button>
             </div>
           </div>
 
-          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col justify-between hover:shadow-elevation transition-shadow duration-300">
-            <div className="text-left space-y-2 mb-6">
-              <div className="w-12 h-12 rounded-full bg-surface-alt text-text-primary flex items-center justify-center mb-4">
-                <LogIn size={24} />
+          {/* Join room */}
+          <div className="relative bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-surface-alt rounded-full -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative text-left space-y-3 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-text-primary text-white flex items-center justify-center shadow-lg">
+                <LogIn size={26} />
               </div>
-              <h2 className="text-2xl font-semibold">Entrar em Sala</h2>
-              <p className="text-text-secondary text-sm">
-                Ja tem um codigo? Entre em uma sala existente.
+              <h2 className="text-2xl font-semibold text-text-primary">Entrar em Sala</h2>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Alguem te mandou um codigo? Cole aqui e entre na sessao.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className="relative space-y-3 mt-auto">
               <input
                 type="text"
                 placeholder="Ex: BF-X7K2"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value)}
-                className="w-full rounded-full border-2 border-surface-alt bg-surface-alt px-5 py-3 text-center uppercase tracking-widest focus:bg-surface focus:border-text-primary outline-none transition-all placeholder:normal-case placeholder:tracking-normal"
+                className="w-full rounded-full border-2 border-surface-alt bg-surface-alt px-5 py-3 text-center uppercase tracking-widest text-lg focus:bg-surface focus:border-text-primary outline-none transition-all placeholder:normal-case placeholder:tracking-normal placeholder:text-sm"
               />
               <button
                 onClick={handleJoinRoom}
                 disabled={!roomCode.trim()}
-                className="w-full rounded-full bg-text-primary hover:bg-black disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-colors"
+                className="w-full rounded-full bg-text-primary hover:bg-black disabled:bg-surface-alt disabled:text-text-secondary disabled:cursor-not-allowed text-white font-medium py-3.5 transition-all hover:shadow-lg flex items-center justify-center gap-2"
               >
-                Entrar
+                <LogIn size={16} />
+                Entrar na sala
               </button>
             </div>
           </div>

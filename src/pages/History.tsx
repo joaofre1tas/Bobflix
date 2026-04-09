@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
-import { ArrowLeft, Heart, Film } from 'lucide-react'
+import { ArrowLeft, Heart, Film, Play, Calendar } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 interface HistoryEntry {
@@ -24,15 +24,27 @@ function formatDate(iso: string) {
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
-  if (diffDays === 0) return 'Hoje'
-  if (diffDays === 1) return 'Ontem'
+  if (diffDays === 0) return `Hoje as ${time}`
+  if (diffDays === 1) return `Ontem as ${time}`
   if (diffDays < 7) return `Ha ${diffDays} dias`
   return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+function groupByDate(entries: HistoryEntry[]) {
+  const groups: Record<string, HistoryEntry[]> = {}
+  for (const entry of entries) {
+    const d = new Date(entry.watched_at)
+    const key = d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+    if (!groups[key]) groups[key] = []
+    groups[key].push(entry)
+  }
+  return Object.entries(groups)
+}
+
 export default function History() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -73,9 +85,12 @@ export default function History() {
     load()
   }, [user])
 
+  const grouped = groupByDate(entries)
+
   return (
-    <div className="flex-1 flex flex-col items-center p-6 animate-fade-in">
+    <div className="flex-1 flex flex-col items-center p-6 animate-fade-in min-h-screen">
       <div className="w-full max-w-2xl space-y-8">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
             <ArrowLeft size={18} />
@@ -84,70 +99,121 @@ export default function History() {
           <img src={logoImg} alt="Bobflix" className="h-8" />
         </div>
 
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold">Nosso Historico</h1>
-          <p className="text-text-secondary text-sm flex items-center justify-center gap-1.5">
-            Tudo que voces assistiram juntos <Heart size={14} className="text-bobflix-500" />
-          </p>
+        {/* Hero */}
+        <div className="text-center space-y-4 pb-4">
+          <div className="relative inline-block">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-bobflix-100 to-bobflix-50 flex items-center justify-center mx-auto shadow-subtle">
+              <Heart size={36} className="text-bobflix-500" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-surface border-2 border-bobflix-100 flex items-center justify-center">
+              <Play size={14} className="text-bobflix-500 ml-0.5" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold text-text-primary tracking-tight">Nosso Historico</h1>
+            <p className="text-text-secondary text-sm">
+              Cada video que voces assistiram juntos, guardado aqui com carinho
+            </p>
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-3 border-bobflix-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center py-16">
+            <div className="w-10 h-10 border-3 border-bobflix-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-16 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-bobflix-50 flex items-center justify-center mx-auto">
-              <Film size={32} className="text-bobflix-300" />
+          <div className="text-center py-20 space-y-6">
+            <div className="relative inline-block">
+              <div className="w-24 h-24 rounded-[20px] bg-bobflix-50 flex items-center justify-center mx-auto">
+                <Film size={40} className="text-bobflix-300" />
+              </div>
             </div>
-            <p className="text-text-secondary">Nenhum video assistido ainda.</p>
-            <p className="text-sm text-text-secondary">Crie uma sala e comece a assistir com alguem especial!</p>
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-text-primary">Nenhuma memoria ainda</p>
+              <p className="text-sm text-text-secondary max-w-xs mx-auto">
+                Quando voces assistirem um video juntos, ele vai aparecer aqui como uma memoria especial.
+              </p>
+            </div>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 text-white px-6 py-3 text-sm font-medium transition-all hover:shadow-lg hover:shadow-bobflix-500/20"
+            >
+              <Sparkle />
+              Criar uma sala
+            </Link>
           </div>
         ) : (
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-6 top-0 bottom-0 w-px bg-bobflix-100" />
-
-            <div className="space-y-6">
-              {entries.map((entry) => {
-                const videoId = extractVideoId(entry.video_url)
-                const thumb = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null
-
-                return (
-                  <div key={entry.id} className="relative flex gap-4 pl-12">
-                    {/* Timeline dot */}
-                    <div className="absolute left-[18px] top-3 w-3 h-3 rounded-full bg-bobflix-500 border-2 border-surface ring-4 ring-bobflix-50" />
-
-                    <div className="flex-1 bg-surface rounded-[16px] shadow-subtle border border-surface-alt/50 overflow-hidden hover:shadow-elevation transition-shadow">
-                      {thumb && (
-                        <a href={entry.video_url} target="_blank" rel="noopener noreferrer" className="block">
-                          <img src={thumb} alt="" className="w-full h-40 object-cover" />
-                        </a>
-                      )}
-                      <div className="p-4 space-y-2">
-                        <h3 className="font-medium text-text-primary text-sm leading-snug">
-                          {entry.video_title || entry.video_url}
-                        </h3>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-text-secondary">{formatDate(entry.watched_at)}</span>
-                          {entry.partner_name && (
-                            <span className="flex items-center gap-1.5 text-xs text-bobflix-700 bg-bobflix-50 px-2.5 py-1 rounded-full">
-                              {entry.partner_avatar && (
-                                <img src={entry.partner_avatar} alt="" className="w-4 h-4 rounded-full" />
-                              )}
-                              com {entry.partner_name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+          <div className="space-y-8">
+            {grouped.map(([dateLabel, items]) => (
+              <div key={dateLabel} className="space-y-4">
+                {/* Date header */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-bobflix-50 flex items-center justify-center shrink-0">
+                    <Calendar size={14} className="text-bobflix-500" />
                   </div>
-                )
-              })}
-            </div>
+                  <span className="text-sm font-medium text-bobflix-700">{dateLabel}</span>
+                  <div className="flex-1 h-px bg-bobflix-50" />
+                </div>
+
+                {/* Entries for this date */}
+                <div className="space-y-3 pl-4">
+                  {items.map((entry) => {
+                    const videoId = extractVideoId(entry.video_url)
+                    const thumb = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null
+
+                    return (
+                      <a
+                        key={entry.id}
+                        href={entry.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex gap-4 bg-surface rounded-[16px] shadow-subtle border border-surface-alt/50 overflow-hidden hover:shadow-elevation transition-all group"
+                      >
+                        {thumb && (
+                          <div className="w-40 shrink-0 relative overflow-hidden">
+                            <img src={thumb} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                                <Play size={18} className="text-text-primary ml-0.5" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex-1 py-4 pr-4 flex flex-col justify-center gap-2">
+                          <h3 className="font-medium text-text-primary text-sm leading-snug line-clamp-2">
+                            {entry.video_title || 'Video do YouTube'}
+                          </h3>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs text-text-secondary">{formatDate(entry.watched_at)}</span>
+                            {entry.partner_name && (
+                              <span className="flex items-center gap-1.5 text-xs text-bobflix-700 bg-bobflix-50 px-2.5 py-1 rounded-full">
+                                {entry.partner_avatar ? (
+                                  <img src={entry.partner_avatar} alt="" className="w-4 h-4 rounded-full" />
+                                ) : (
+                                  <Heart size={10} className="text-bobflix-500" />
+                                )}
+                                com {entry.partner_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function Sparkle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.912 5.813a2 2 0 001.272 1.278L21 12l-5.816 1.909a2 2 0 00-1.272 1.278L12 21l-1.912-5.813a2 2 0 00-1.272-1.278L3 12l5.816-1.909a2 2 0 001.272-1.278z" />
+    </svg>
   )
 }

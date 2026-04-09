@@ -74,6 +74,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9)
 
 let channel: RealtimeChannel | null = null
 let typingTimeouts: Record<string, ReturnType<typeof setTimeout>> = {}
+let lastRecordedVideo = ''
 
 export const useRoomStore = createStore<RoomState>((set, get) => ({
   currentUser: null,
@@ -280,6 +281,7 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
   setVideoUrl: (url) => {
     const roomId = get().roomId
     if (!roomId) return
+    lastRecordedVideo = ''
     set(() => ({
       videoUrl: url,
       playback: { status: 'unstarted' as const, time: 0, updatedBy: get().currentUser?.id || '' },
@@ -325,6 +327,30 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       supabase.from('playback_state').upsert({
         room_id: roomId, status, time, updated_by: user.id, updated_at: new Date().toISOString(),
       }).then()
+
+      // Record watch history on first play of a video
+      if (status === 'playing' && get().videoUrl && get().videoUrl !== lastRecordedVideo) {
+        lastRecordedVideo = get().videoUrl
+        const participants = get().participants.filter((p) => p.id !== user.id)
+        const partner = participants.length > 0 ? participants[0] : null
+        const videoUrl = get().videoUrl
+        supabase.from('watch_history').insert({
+          room_id: roomId,
+          user_id: user.id,
+          video_url: videoUrl,
+          video_title: '',
+          watched_with: partner?.id || null,
+        }).then()
+        if (partner) {
+          supabase.from('watch_history').insert({
+            room_id: roomId,
+            user_id: partner.id,
+            video_url: videoUrl,
+            video_title: '',
+            watched_with: user.id,
+          }).then()
+        }
+      }
     }
   },
 
