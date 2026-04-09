@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useRoomStore } from '@/stores/useRoomStore'
 import { useAuth } from '@/lib/AuthProvider'
 import { supabase } from '@/lib/supabaseClient'
-import { LogIn, Sparkles, Lock, User, Heart, Play, LogOut } from 'lucide-react'
+import { LogIn, Sparkles, Lock, User, Heart, Play, LogOut, Link2, Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function Index() {
@@ -15,6 +16,9 @@ export default function Index() {
   const navigate = useNavigate()
   const [partnerName, setPartnerName] = useState<string | null>(null)
   const [hasPartner, setHasPartner] = useState(false)
+  const [inviteCreating, setInviteCreating] = useState(false)
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [copiedInvite, setCopiedInvite] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -57,6 +61,34 @@ export default function Index() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     navigate('/login')
+  }
+
+  const handleCreateInviteLink = async () => {
+    if (!user) return
+    setInviteCreating(true)
+    setInviteLink(null)
+    const { data, error } = await supabase.from('partnership_invites').insert({ inviter_id: user.id }).select('token').single()
+    setInviteCreating(false)
+    if (error) {
+      toast.error('Não foi possível criar o convite. Tente de novo.')
+      return
+    }
+    if (data?.token) {
+      setInviteLink(`${window.location.origin}/convite/${data.token}`)
+      toast.success('Convite criado — envie o link para quem você ama.')
+    }
+  }
+
+  const copyInvite = async () => {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setCopiedInvite(true)
+      toast.success('Link copiado!')
+      setTimeout(() => setCopiedInvite(false), 2000)
+    } catch {
+      toast.error('Não deu para copiar. Copie manualmente.')
+    }
   }
 
   const greeting = () => {
@@ -115,6 +147,42 @@ export default function Index() {
             Sair
           </button>
         </div>
+
+        {!hasPartner && user && (
+          <div className="max-w-xl mx-auto rounded-[20px] border border-bobflix-100 bg-gradient-to-b from-bobflix-50/90 to-surface p-5 shadow-subtle space-y-3">
+            <p className="text-sm text-text-secondary text-center">
+              Ainda sem vínculo no Bobflix? Crie um convite e mande o link — a outra pessoa entra, faz login e aceita.
+            </p>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleCreateInviteLink}
+                disabled={inviteCreating}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 transition-colors"
+              >
+                <Link2 size={16} />
+                {inviteCreating ? 'Criando...' : 'Criar convite'}
+              </button>
+            </div>
+            {inviteLink && (
+              <div className="flex gap-2 items-stretch pt-1">
+                <input
+                  readOnly
+                  value={inviteLink}
+                  className="flex-1 text-xs rounded-xl bg-surface border border-surface-alt px-3 py-2.5 text-text-primary truncate"
+                />
+                <button
+                  type="button"
+                  onClick={copyInvite}
+                  className="shrink-0 rounded-xl border border-surface-alt px-3 flex items-center justify-center hover:bg-surface-alt transition-colors"
+                  title="Copiar link"
+                >
+                  {copiedInvite ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300">
