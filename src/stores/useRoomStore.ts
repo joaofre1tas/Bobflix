@@ -5,6 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 export type User = {
   id: string
   nickname: string
+  avatarUrl?: string | null
   state: 'buffering' | 'ready' | 'playing' | 'paused'
 }
 
@@ -34,8 +35,17 @@ export type PlaybackState = {
   updatedBy: string
 }
 
+export type QueueItem = {
+  id: string
+  videoUrl: string
+  videoTitle: string
+  position: number
+  addedBy: string | null
+  played: boolean
+}
+
 interface RoomState {
-  currentUser: { id: string; nickname: string } | null
+  currentUser: { id: string; nickname: string; avatarUrl?: string | null } | null
   roomId: string | null
   participants: User[]
   messages: Message[]
@@ -43,7 +53,9 @@ interface RoomState {
   playback: PlaybackState
   reactions: Reaction[]
   notifications: Notification[]
-  setCurrentUser: (nickname: string) => void
+  typingUsers: string[]
+  queue: QueueItem[]
+  setCurrentUser: (id: string, nickname: string, avatarUrl?: string | null) => void
   createRoom: (roomId: string, password?: string) => void
   joinRoom: (roomId: string) => void
   leaveRoom: () => void
@@ -52,26 +64,31 @@ interface RoomState {
   sendReaction: (emoji: string) => void
   syncPlayback: (status: PlaybackState['status'], time: number, isLocal: boolean) => void
   addNotification: (text: string) => void
+  sendTyping: () => void
+  addToQueue: (videoUrl: string, videoTitle?: string) => void
+  removeFromQueue: (itemId: string) => void
+  playNext: () => void
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
-const DEFAULT_VIDEO = ''
-
 let channel: RealtimeChannel | null = null
+let typingTimeouts: Record<string, ReturnType<typeof setTimeout>> = {}
 
 export const useRoomStore = createStore<RoomState>((set, get) => ({
   currentUser: null,
   roomId: null,
   participants: [],
   messages: [],
-  videoUrl: DEFAULT_VIDEO,
+  videoUrl: '',
   playback: { status: 'unstarted', time: 0, updatedBy: '' },
   reactions: [],
   notifications: [],
+  typingUsers: [],
+  queue: [],
 
-  setCurrentUser: (nickname) => {
-    set(() => ({ currentUser: { id: generateId(), nickname } }))
+  setCurrentUser: (id, nickname, avatarUrl) => {
+    set(() => ({ currentUser: { id, nickname, avatarUrl } }))
   },
 
   createRoom: async (roomId: string, password?: string) => {
@@ -92,23 +109,18 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       await supabase.removeChannel(channel)
       channel = null
     }
+    typingTimeouts = {}
 
-    // Ensure room exists (for direct link access to non-existing rooms)
     await supabase.from('rooms').upsert(
       { id: roomId, video_url: '' },
       { onConflict: 'id', ignoreDuplicates: true },
     )
 
-    // Load room, messages and playback in parallel
-    const [roomRes, msgsRes, pbRes] = await Promise.all([
+    const [roomRes, msgsRes, pbRes, queueRes] = await Promise.all([
       supabase.from('rooms').select('video_url').eq('id', roomId).single(),
-      supabase
-        .from('messages')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true })
-        .limit(100),
+      supabase.from('messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true }).limit(100),
       supabase.from('playback_state').select('*').eq('room_id', roomId).single(),
+      supabase.from('room_queue').select('*').eq('room_id', roomId).eq('played', false).order('position', { ascending: true }),
     ])
 
     const formattedMessages: Message[] = (msgsRes.data || []).map((m: any) => ({
@@ -119,9 +131,18 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       time: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     }))
 
+    const formattedQueue: QueueItem[] = (queueRes.data || []).map((q: any) => ({
+      id: q.id,
+      videoUrl: q.video_url,
+      videoTitle: q.video_title,
+      position: q.position,
+      addedBy: q.added_by,
+      played: q.played,
+    }))
+
     set(() => ({
       roomId,
-      videoUrl: roomRes.data?.video_url || DEFAULT_VIDEO,
+      videoUrl: roomRes.data?.video_url || '',
       messages: formattedMessages,
       playback: pbRes.data
         ? { status: pbRes.data.status, time: pbRes.data.time, updatedBy: pbRes.data.updated_by }
@@ -129,18 +150,18 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       participants: [],
       reactions: [],
       notifications: [],
+      typingUsers: [],
+      queue: formattedQueue,
     }))
 
-    // --- Realtime subscriptions ---
     channel = supabase.channel(`room:${roomId}`)
 
-    // Presence: participants
     channel.on('presence', { event: 'sync' }, () => {
-      const ps = channel!.presenceState<{ user_id: string; nickname: string; state: string }>()
+      const ps = channel!.presenceState<{ user_id: string; nickname: string; avatar_url?: string; state: string }>()
       const users: User[] = []
       for (const key of Object.keys(ps)) {
         for (const p of ps[key]) {
-          users.push({ id: p.user_id, nickname: p.nickname, state: (p.state as User['state']) || 'ready' })
+          users.push({ id: p.user_id, nickname: p.nickname, avatarUrl: p.avatar_url, state: (p.state as User['state']) || 'ready' })
         }
       }
       set(() => ({ participants: users }))
@@ -148,9 +169,7 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
 
     channel.on('presence', { event: 'join' }, ({ newPresences }) => {
       for (const p of newPresences as any[]) {
-        if (p.user_id !== user.id) {
-          get().addNotification(`${p.nickname} entrou na sala`)
-        }
+        if (p.user_id !== user.id) get().addNotification(`${p.nickname} entrou na sala`)
       }
     })
 
@@ -160,7 +179,6 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       }
     })
 
-    // Postgres Changes: new messages
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}` },
@@ -168,17 +186,13 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
         const m = payload.new as any
         if (m.sender_id === get().currentUser?.id) return
         const msg: Message = {
-          id: m.id,
-          senderId: m.sender_id,
-          senderName: m.sender_name,
-          text: m.text,
+          id: m.id, senderId: m.sender_id, senderName: m.sender_name, text: m.text,
           time: new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         }
         set((state) => ({ messages: [...state.messages, msg] }))
       },
     )
 
-    // Broadcast: playback sync (faster than Postgres Changes)
     channel.on('broadcast', { event: 'playback' }, ({ payload }) => {
       if (payload.updatedBy === get().currentUser?.id) return
       set(() => ({ playback: { status: payload.status, time: payload.time, updatedBy: payload.updatedBy } }))
@@ -186,7 +200,6 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       if (payload.status === 'paused') get().addNotification('Alguém pausou')
     })
 
-    // Postgres Changes: room video URL
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
@@ -199,7 +212,6 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       },
     )
 
-    // Broadcast: ephemeral reactions
     channel.on('broadcast', { event: 'reaction' }, ({ payload }) => {
       if (payload.userId === get().currentUser?.id) return
       const reaction: Reaction = { id: payload.id, emoji: payload.emoji, userId: payload.userId, xOffset: payload.xOffset }
@@ -209,9 +221,40 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       }, 2000)
     })
 
+    // Typing indicator
+    channel.on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (payload.userId === get().currentUser?.id) return
+      const name = payload.nickname as string
+      set((state) => ({
+        typingUsers: state.typingUsers.includes(name) ? state.typingUsers : [...state.typingUsers, name],
+      }))
+      if (typingTimeouts[name]) clearTimeout(typingTimeouts[name])
+      typingTimeouts[name] = setTimeout(() => {
+        set((state) => ({ typingUsers: state.typingUsers.filter((n) => n !== name) }))
+        delete typingTimeouts[name]
+      }, 2500)
+    })
+
+    // Queue changes
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'room_queue', filter: `room_id=eq.${roomId}` },
+      async () => {
+        const { data } = await supabase.from('room_queue').select('*').eq('room_id', roomId).eq('played', false).order('position', { ascending: true })
+        if (data) {
+          set(() => ({
+            queue: data.map((q: any) => ({
+              id: q.id, videoUrl: q.video_url, videoTitle: q.video_title,
+              position: q.position, addedBy: q.added_by, played: q.played,
+            })),
+          }))
+        }
+      },
+    )
+
     await channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel!.track({ user_id: user.id, nickname: user.nickname, state: 'ready' })
+        await channel!.track({ user_id: user.id, nickname: user.nickname, avatar_url: user.avatarUrl || '', state: 'ready' })
       }
     })
   },
@@ -221,12 +264,15 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       supabase.removeChannel(channel)
       channel = null
     }
+    typingTimeouts = {}
     set(() => ({
       roomId: null,
       participants: [],
       messages: [],
       reactions: [],
       notifications: [],
+      typingUsers: [],
+      queue: [],
       playback: { status: 'unstarted' as const, time: 0, updatedBy: '' },
     }))
   },
@@ -246,12 +292,8 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     const user = get().currentUser
     const roomId = get().roomId
     if (!user || !roomId) return
-
     const newMsg: Message = {
-      id: generateId(),
-      senderId: user.id,
-      senderName: user.nickname,
-      text,
+      id: generateId(), senderId: user.id, senderName: user.nickname, text,
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     }
     set((state) => ({ messages: [...state.messages, newMsg] }))
@@ -273,24 +315,15 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     const user = get().currentUser
     const roomId = get().roomId
     if (!user || !roomId) return
-
     const currentState = get().playback
     if (currentState.status === status && Math.abs(currentState.time - time) < 1) return
-
     set(() => ({ playback: { status, time, updatedBy: isLocal ? user.id : 'remote' } }))
-
     if (isLocal) {
       if (status === 'playing') get().addNotification(`${user.nickname} deu play`)
       if (status === 'paused') get().addNotification(`${user.nickname} pausou`)
-      // Broadcast for instant sync with other clients
       channel?.send({ type: 'broadcast', event: 'playback', payload: { status, time, updatedBy: user.id } })
-      // Persist for late joiners
       supabase.from('playback_state').upsert({
-        room_id: roomId,
-        status,
-        time,
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
+        room_id: roomId, status, time, updated_by: user.id, updated_at: new Date().toISOString(),
       }).then()
     }
   },
@@ -301,5 +334,38 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     setTimeout(() => {
       set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) }))
     }, 3000)
+  },
+
+  sendTyping: () => {
+    const user = get().currentUser
+    if (!user) return
+    channel?.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id, nickname: user.nickname } })
+  },
+
+  addToQueue: async (videoUrl, videoTitle) => {
+    const roomId = get().roomId
+    const user = get().currentUser
+    if (!roomId) return
+    const maxPos = get().queue.reduce((max, q) => Math.max(max, q.position), 0)
+    await supabase.from('room_queue').insert({
+      room_id: roomId,
+      video_url: videoUrl,
+      video_title: videoTitle || '',
+      position: maxPos + 1,
+      added_by: user?.id || null,
+    })
+  },
+
+  removeFromQueue: async (itemId) => {
+    await supabase.from('room_queue').delete().eq('id', itemId)
+  },
+
+  playNext: async () => {
+    const queue = get().queue
+    const roomId = get().roomId
+    if (!roomId || queue.length === 0) return
+    const next = queue[0]
+    await supabase.from('room_queue').update({ played: true }).eq('id', next.id)
+    get().setVideoUrl(next.videoUrl)
   },
 }))

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 
 interface Props {
   roomId: string
@@ -7,16 +7,16 @@ interface Props {
   onSubmit: (nickname: string, password?: string) => void
   onCancel: () => void
   passwordError?: boolean
+  hideNickname?: boolean
 }
 
-export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel, passwordError }: Props) {
-  const [nickname, setNickname] = useState('')
+export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel, passwordError, hideNickname }: Props) {
   const [password, setPassword] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!nickname.trim()) return
-    onSubmit(nickname.trim(), isPrivate ? password : undefined)
+    if (isPrivate && !password) return
+    onSubmit('', isPrivate ? password : undefined)
   }
 
   return (
@@ -27,29 +27,15 @@ export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel,
       >
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-full bg-bobflix-50 text-bobflix-500 flex items-center justify-center mx-auto">
-            {isPrivate ? <Lock size={28} /> : <LogIn size={28} />}
+            <Lock size={28} />
           </div>
-          <h2 className="text-xl font-semibold text-text-primary">Entrar na sala {roomId}</h2>
+          <h2 className="text-xl font-semibold text-text-primary">Sala {roomId}</h2>
           <p className="text-sm text-text-secondary">
-            {isPrivate
-              ? 'Esta sala é protegida por senha. Insira seu apelido e a senha para entrar.'
-              : 'Escolha um apelido para os outros participantes te reconhecerem.'}
+            Esta sala e protegida por senha. Digite a senha para entrar.
           </p>
         </div>
 
         <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Apelido</label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Como quer ser chamado?"
-              autoFocus
-              className="w-full rounded-xl border-2 border-surface-alt bg-surface-alt px-4 py-3 text-sm focus:bg-surface focus:border-bobflix-500 outline-none transition-all"
-            />
-          </div>
-
           {isPrivate && (
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Senha da sala</label>
@@ -58,6 +44,7 @@ export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel,
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Digite a senha..."
+                autoFocus
                 className={`w-full rounded-xl border-2 px-4 py-3 text-sm focus:bg-surface outline-none transition-all ${
                   passwordError
                     ? 'border-red-400 bg-red-50 focus:border-red-500'
@@ -81,7 +68,7 @@ export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel,
           </button>
           <button
             type="submit"
-            disabled={!nickname.trim() || (isPrivate && !password)}
+            disabled={isPrivate && !password}
             className="flex-1 rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:bg-surface-alt disabled:text-text-secondary text-white py-3 text-sm font-medium transition-colors"
           >
             Entrar

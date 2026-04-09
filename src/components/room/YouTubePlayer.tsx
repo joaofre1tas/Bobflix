@@ -57,6 +57,10 @@ export default function YouTubePlayer() {
         onStateChange: (event: any) => {
           const state = event.data
           const time = event.target.getCurrentTime()
+          if (state === 0 && store.queue.length > 0) {
+            store.playNext()
+            return
+          }
           if (state === 1) store.syncPlayback('playing', time, true)
           if (state === 2) store.syncPlayback('paused', time, true)
           if (state === 3) store.syncPlayback('buffering', time, true)

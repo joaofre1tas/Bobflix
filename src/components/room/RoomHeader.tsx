@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Copy, Check, Play, LogOut } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Copy, Check, Play, LogOut, User } from 'lucide-react'
 import { useRoomStore } from '@/stores/useRoomStore'
+import { useAuth } from '@/lib/AuthProvider'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
 export default function RoomHeader({ roomId }: { roomId: string }) {
   const [copied, setCopied] = useState(false)
   const [store] = useRoomStore()
+  const { profile } = useAuth()
   const [urlInput, setUrlInput] = useState('')
   const navigate = useNavigate()
 
@@ -63,8 +65,20 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
           className="flex items-center gap-2 rounded-full bg-surface-alt hover:bg-surface-alt/70 px-4 py-2.5 text-sm font-medium transition-colors border border-transparent"
         >
           {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-text-secondary" />}
-          <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Código'}</span>
+          <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Codigo'}</span>
         </button>
+
+        <Link
+          to="/perfil"
+          className="w-9 h-9 rounded-full overflow-hidden bg-bobflix-50 flex items-center justify-center border border-surface-alt hover:ring-2 hover:ring-bobflix-100 transition-all"
+        >
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <User size={14} className="text-bobflix-500" />
+          )}
+        </Link>
+
         <button
           onClick={handleLeave}
           className="flex items-center gap-2 rounded-full hover:bg-red-50 text-text-secondary hover:text-red-500 px-3 py-2.5 text-sm font-medium transition-colors"
