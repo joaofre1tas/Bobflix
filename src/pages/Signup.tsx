@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
@@ -13,32 +13,47 @@ export default function Signup() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectAfterAuth = searchParams.get('redirect') || '/'
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error: err } = await supabase.auth.signUp({
+    const path = redirectAfterAuth.startsWith('/') ? redirectAfterAuth : '/'
+    const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: name } },
+      options: {
+        data: { display_name: name },
+        emailRedirectTo: `${window.location.origin}${path}`,
+      },
     })
     setLoading(false)
     if (err) {
       setError(err.message)
     } else {
+      if (data.session) {
+        navigate(path, { replace: true })
+        return
+      }
       setSuccess(true)
     }
   }
 
   const handleGoogle = async () => {
+    const path = redirectAfterAuth.startsWith('/') ? redirectAfterAuth : '/'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}${path}` },
     })
   }
 
   if (success) {
+    const inviteHint =
+      redirectAfterAuth !== '/' && redirectAfterAuth.startsWith('/convite/')
+        ? `${window.location.origin}${redirectAfterAuth}`
+        : null
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in">
         <div className="w-full max-w-md text-center space-y-6">
@@ -48,8 +63,21 @@ export default function Signup() {
             <p className="text-sm text-text-secondary">
               Enviamos um link de confirmação para <strong>{email}</strong>. Clique no link para ativar sua conta.
             </p>
+            {inviteHint && (
+              <p className="text-xs text-text-secondary pt-2 border-t border-bobflix-200/80">
+                Depois de confirmar, abra de novo o convite:{' '}
+                <span className="text-bobflix-700 break-all font-medium">{inviteHint}</span>
+              </p>
+            )}
           </div>
-          <button onClick={() => navigate('/login')} className="text-bobflix-500 hover:text-bobflix-400 text-sm font-medium">
+          <button
+            onClick={() =>
+              navigate(
+                inviteHint ? `/login?redirect=${encodeURIComponent(redirectAfterAuth)}` : '/login',
+              )
+            }
+            className="text-bobflix-500 hover:text-bobflix-400 text-sm font-medium"
+          >
             Voltar para o login
           </button>
         </div>
@@ -135,7 +163,10 @@ export default function Signup() {
 
         <p className="text-center text-sm text-text-secondary">
           Já tem conta?{' '}
-          <Link to="/login" className="text-bobflix-500 hover:text-bobflix-400 font-medium">
+          <Link
+            to={searchParams.get('redirect') ? `/login?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : '/login'}
+            className="text-bobflix-500 hover:text-bobflix-400 font-medium"
+          >
             Fazer login
           </Link>
         </p>

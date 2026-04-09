@@ -11,6 +11,7 @@ import Signup from './pages/Signup'
 import Profile from './pages/Profile'
 import History from './pages/History'
 import Partner from './pages/Partner'
+import PartnerInvite from './pages/PartnerInvite'
 import Messages from './pages/Messages'
 import Retrospective from './pages/Retrospective'
 import NotFound from './pages/NotFound'
@@ -26,6 +27,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Signup />} />
+            <Route path="/convite/:token" element={<PartnerInvite />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/sala/:roomId" element={<Room />} />
             <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

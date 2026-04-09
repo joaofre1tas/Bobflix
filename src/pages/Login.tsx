@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import logoImg from '@/assets/doaskdp-03f16.png'
@@ -11,6 +11,10 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const redirectAfterAuth =
+    searchParams.get('redirect') || (location.state as { from?: string } | null)?.from || '/'
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,14 +25,16 @@ export default function Login() {
     if (err) {
       setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : err.message)
     } else {
-      navigate('/')
+      const to = redirectAfterAuth.startsWith('/') ? redirectAfterAuth : '/'
+      navigate(to)
     }
   }
 
   const handleGoogle = async () => {
+    const path = redirectAfterAuth.startsWith('/') ? redirectAfterAuth : '/'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}${path}` },
     })
   }
 
@@ -97,7 +103,10 @@ export default function Login() {
 
         <p className="text-center text-sm text-text-secondary">
           Não tem conta?{' '}
-          <Link to="/cadastro" className="text-bobflix-500 hover:text-bobflix-400 font-medium">
+          <Link
+            to={searchParams.get('redirect') ? `/cadastro?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : '/cadastro'}
+            className="text-bobflix-500 hover:text-bobflix-400 font-medium"
+          >
             Criar conta
           </Link>
         </p>

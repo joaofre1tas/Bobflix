@@ -14,6 +14,7 @@ export default function Index() {
   const { profile, user } = useAuth()
   const navigate = useNavigate()
   const [partnerName, setPartnerName] = useState<string | null>(null)
+  const [hasPartner, setHasPartner] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -30,10 +31,12 @@ export default function Index() {
         .limit(1)
         .single()
       if (data) {
+        setHasPartner(true)
         const partnerId = data.user_a === user.id ? data.user_b : data.user_a
         const { data: prof } = await supabase.from('profiles').select('display_name').eq('id', partnerId).single()
         if (prof) setPartnerName(prof.display_name)
       } else {
+        setHasPartner(false)
         setPartnerName(null)
       }
     }
@@ -94,13 +97,15 @@ export default function Index() {
             <span className="text-sm font-medium text-text-primary">{profile?.display_name || 'Meu perfil'}</span>
           </Link>
 
-          <Link
-            to="/meu-amor"
-            className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
-          >
-            <Heart size={14} className="fill-bobflix-500 text-bobflix-500 group-hover:scale-110 transition-transform" />
-            {partnerName ? `Meu amor, ${partnerName}` : 'Meu amor'}
-          </Link>
+          {hasPartner && (
+            <Link
+              to="/meu-amor"
+              className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
+            >
+              <Heart size={14} className="fill-bobflix-500 text-bobflix-500 group-hover:scale-110 transition-transform" />
+              {partnerName ? `Meu amor, ${partnerName}` : 'Meu amor'}
+            </Link>
+          )}
 
           <button
             onClick={handleLogout}
