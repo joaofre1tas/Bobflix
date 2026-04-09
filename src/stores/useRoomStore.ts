@@ -44,6 +44,7 @@ interface RoomState {
   reactions: Reaction[]
   notifications: Notification[]
   setCurrentUser: (nickname: string) => void
+  createRoom: (roomId: string, password?: string) => void
   joinRoom: (roomId: string) => void
   leaveRoom: () => void
   setVideoUrl: (url: string) => void
@@ -73,6 +74,15 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
     set(() => ({ currentUser: { id: generateId(), nickname } }))
   },
 
+  createRoom: async (roomId: string, password?: string) => {
+    await supabase.from('rooms').insert({
+      id: roomId,
+      video_url: '',
+      is_private: !!password,
+      password: password || null,
+    })
+  },
+
   joinRoom: async (roomId: string) => {
     const user = get().currentUser
     if (!user) return
@@ -82,7 +92,7 @@ export const useRoomStore = createStore<RoomState>((set, get) => ({
       channel = null
     }
 
-    // Ensure room exists (new rooms start with no video)
+    // Ensure room exists (for direct link access to non-existing rooms)
     await supabase.from('rooms').upsert(
       { id: roomId, video_url: '' },
       { onConflict: 'id', ignoreDuplicates: true },

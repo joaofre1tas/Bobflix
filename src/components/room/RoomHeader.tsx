@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Copy, Check, Play } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Copy, Check, Play, LogOut } from 'lucide-react'
 import { useRoomStore } from '@/stores/useRoomStore'
 import logoImg from '@/assets/doaskdp-03f16.png'
 
@@ -7,6 +8,7 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
   const [copied, setCopied] = useState(false)
   const [store] = useRoomStore()
   const [urlInput, setUrlInput] = useState('')
+  const navigate = useNavigate()
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomId)
@@ -22,14 +24,17 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
     }
   }
 
+  const handleLeave = () => {
+    store.leaveRoom()
+    navigate('/')
+  }
+
   return (
     <header className="h-[76px] px-6 bg-surface border-b border-surface-alt flex items-center justify-between gap-4 z-10">
-      {/* Logo */}
-      <div className="hidden sm:flex items-center shrink-0">
+      <button onClick={handleLeave} className="hidden sm:flex items-center shrink-0 hover:opacity-70 transition-opacity">
         <img src={logoImg} alt="Bobflix" className="h-10 object-contain" />
-      </div>
+      </button>
 
-      {/* URL Input */}
       <form onSubmit={handleUrlSubmit} className="flex-1 max-w-2xl mx-auto flex items-center gap-2">
         <input
           type="text"
@@ -48,24 +53,25 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
         </button>
       </form>
 
-      {/* Room Badge */}
-      <div className="shrink-0 flex items-center gap-3">
+      <div className="shrink-0 flex items-center gap-2">
         <div className="hidden md:flex flex-col items-end">
-          <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-            Sala
-          </span>
+          <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">Sala</span>
           <span className="font-semibold text-text-primary leading-tight">{roomId}</span>
         </div>
         <button
           onClick={handleCopy}
           className="flex items-center gap-2 rounded-full bg-surface-alt hover:bg-surface-alt/70 px-4 py-2.5 text-sm font-medium transition-colors border border-transparent"
         >
-          {copied ? (
-            <Check size={16} className="text-green-500" />
-          ) : (
-            <Copy size={16} className="text-text-secondary" />
-          )}
+          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-text-secondary" />}
           <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Código'}</span>
+        </button>
+        <button
+          onClick={handleLeave}
+          className="flex items-center gap-2 rounded-full hover:bg-red-50 text-text-secondary hover:text-red-500 px-3 py-2.5 text-sm font-medium transition-colors"
+          title="Sair da sala"
+        >
+          <LogOut size={16} />
+          <span className="hidden lg:inline">Sair</span>
         </button>
       </div>
     </header>
