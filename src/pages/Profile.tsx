@@ -92,7 +92,7 @@ export default function Profile() {
             {uploading && <p className="text-xs text-text-secondary">Enviando foto...</p>}
           </div>
 
-          {/* Avatares padrao */}
+          {/* Avatares padrão */}
           <div className="space-y-2">
             <p className="text-xs text-text-secondary text-center">Ou escolha um avatar</p>
             <div className="flex flex-wrap justify-center gap-2">
@@ -112,7 +112,7 @@ export default function Profile() {
 
           {/* Nome */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Nome de exibicao</label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">Nome de exibição</label>
             <input
               type="text"
               value={displayName}
@@ -137,7 +137,7 @@ export default function Profile() {
             disabled={saving || !displayName.trim()}
             className="w-full rounded-full bg-bobflix-500 hover:bg-bobflix-400 disabled:opacity-50 text-white font-medium py-3.5 transition-colors flex items-center justify-center gap-2"
           >
-            {saved ? <><Check size={16} /> Salvo!</> : saving ? 'Salvando...' : 'Salvar alteracoes'}
+            {saved ? <><Check size={16} /> Salvo!</> : saving ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </div>
 

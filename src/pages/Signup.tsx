@@ -46,7 +46,7 @@ export default function Signup() {
           <div className="bg-bobflix-50 rounded-[20px] p-8 space-y-3">
             <h2 className="text-xl font-semibold text-bobflix-900">Verifique seu e-mail!</h2>
             <p className="text-sm text-text-secondary">
-              Enviamos um link de confirmacao para <strong>{email}</strong>. Clique no link para ativar sua conta.
+              Enviamos um link de confirmação para <strong>{email}</strong>. Clique no link para ativar sua conta.
             </p>
           </div>
           <button onClick={() => navigate('/login')} className="text-bobflix-500 hover:text-bobflix-400 text-sm font-medium">
@@ -134,7 +134,7 @@ export default function Signup() {
         </form>
 
         <p className="text-center text-sm text-text-secondary">
-          Ja tem conta?{' '}
+          Já tem conta?{' '}
           <Link to="/login" className="text-bobflix-500 hover:text-bobflix-400 font-medium">
             Fazer login
           </Link>

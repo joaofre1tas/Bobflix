@@ -65,7 +65,7 @@ export default function RoomHeader({ roomId }: { roomId: string }) {
           className="flex items-center gap-2 rounded-full bg-surface-alt hover:bg-surface-alt/70 px-4 py-2.5 text-sm font-medium transition-colors border border-transparent"
         >
           {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-text-secondary" />}
-          <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Codigo'}</span>
+          <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar Código'}</span>
         </button>
 
         <Link

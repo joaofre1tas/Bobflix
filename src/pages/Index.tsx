@@ -45,10 +45,10 @@ export default function Index() {
           <img src={logoImg} alt="Bobflix" className="h-14 md:h-16 mx-auto" />
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl font-semibold text-text-primary tracking-tight">
-              {greeting()}, {profile?.display_name || 'voce'} <span className="inline-block animate-fade-in">💙</span>
+              {greeting()}, {profile?.display_name || 'você'} 💙
             </h1>
             <p className="text-text-secondary text-base max-w-md mx-auto">
-              Escolha o que fazer agora — criar uma sala nova ou entrar numa que ja existe.
+              Escolha o que fazer agora — criar uma sala nova ou entrar numa que já existe.
             </p>
           </div>
         </div>
@@ -73,25 +73,24 @@ export default function Index() {
             className="group flex items-center gap-2 rounded-full bg-bobflix-50 border border-bobflix-100 px-5 py-2.5 hover:bg-bobflix-100 hover:shadow-subtle transition-all text-sm font-medium text-bobflix-700"
           >
             <Heart size={14} className="group-hover:scale-110 transition-transform" />
-            Nosso historico
+            Nosso Histórico
           </Link>
         </div>
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Create room */}
-          <div className="relative bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-bobflix-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500" />
-            <div className="relative text-left space-y-3 mb-8">
+          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300">
+            <div className="text-left space-y-3 mb-8">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-bobflix-500 to-bobflix-400 text-white flex items-center justify-center shadow-lg">
                 <Sparkles size={26} />
               </div>
               <h2 className="text-2xl font-semibold text-text-primary">Criar Sala</h2>
               <p className="text-text-secondary text-sm leading-relaxed">
-                Crie um espaco so de voces e compartilhe o codigo com quem ama.
+                Crie um espaço só de vocês e compartilhe o código com quem ama.
               </p>
             </div>
-            <div className="relative space-y-3 mt-auto">
+            <div className="space-y-3 mt-auto">
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -123,18 +122,17 @@ export default function Index() {
           </div>
 
           {/* Join room */}
-          <div className="relative bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300 overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-surface-alt rounded-full -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500" />
-            <div className="relative text-left space-y-3 mb-8">
+          <div className="bg-surface p-8 rounded-[24px] shadow-subtle border border-surface-alt/50 flex flex-col hover:shadow-elevation transition-all duration-300">
+            <div className="text-left space-y-3 mb-8">
               <div className="w-14 h-14 rounded-2xl bg-text-primary text-white flex items-center justify-center shadow-lg">
                 <LogIn size={26} />
               </div>
               <h2 className="text-2xl font-semibold text-text-primary">Entrar em Sala</h2>
               <p className="text-text-secondary text-sm leading-relaxed">
-                Alguem te mandou um codigo? Cole aqui e entre na sessao.
+                Alguém te mandou um código? Cole aqui e entre na sessão.
               </p>
             </div>
-            <div className="relative space-y-3 mt-auto">
+            <div className="space-y-3 mt-auto">
               <input
                 type="text"
                 placeholder="Ex: BF-X7K2"

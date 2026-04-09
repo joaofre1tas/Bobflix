@@ -22,7 +22,7 @@ export default function VideoQueue() {
       >
         <span className="flex items-center gap-2">
           <ListMusic size={14} />
-          Fila de videos ({store.queue.length})
+          Fila de vídeos ({store.queue.length})
         </span>
         <span className="text-xs">{expanded ? 'Fechar' : 'Abrir'}</span>
       </button>
@@ -47,7 +47,7 @@ export default function VideoQueue() {
           </form>
 
           {store.queue.length === 0 ? (
-            <p className="text-xs text-text-secondary text-center py-2">Nenhum video na fila</p>
+            <p className="text-xs text-text-secondary text-center py-2">Nenhum vídeo na fila</p>
           ) : (
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
               {store.queue.map((item, i) => (
@@ -73,7 +73,7 @@ export default function VideoQueue() {
               className="w-full flex items-center justify-center gap-1.5 rounded-full bg-bobflix-50 text-bobflix-700 hover:bg-bobflix-100 py-2 text-xs font-medium transition-colors"
             >
               <Play size={12} />
-              Tocar proximo
+              Tocar próximo
             </button>
           )}
         </div>

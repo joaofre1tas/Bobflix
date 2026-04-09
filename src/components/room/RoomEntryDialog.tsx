@@ -31,7 +31,7 @@ export default function RoomEntryDialog({ roomId, isPrivate, onSubmit, onCancel,
           </div>
           <h2 className="text-xl font-semibold text-text-primary">Sala {roomId}</h2>
           <p className="text-sm text-text-secondary">
-            Esta sala e protegida por senha. Digite a senha para entrar.
+            Esta sala é protegida por senha. Digite a senha para entrar.
           </p>
         </div>
 

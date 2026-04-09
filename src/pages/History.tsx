@@ -26,9 +26,9 @@ function formatDate(iso: string) {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
-  if (diffDays === 0) return `Hoje as ${time}`
-  if (diffDays === 1) return `Ontem as ${time}`
-  if (diffDays < 7) return `Ha ${diffDays} dias`
+  if (diffDays === 0) return `Hoje às ${time}`
+  if (diffDays === 1) return `Ontem às ${time}`
+  if (diffDays < 7) return `Há ${diffDays} dias`
   return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -110,9 +110,9 @@ export default function History() {
             </div>
           </div>
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold text-text-primary tracking-tight">Nosso Historico</h1>
+            <h1 className="text-3xl font-semibold text-text-primary tracking-tight">Nosso Histórico</h1>
             <p className="text-text-secondary text-sm">
-              Cada video que voces assistiram juntos, guardado aqui com carinho
+              Cada vídeo que vocês assistiram juntos, guardado aqui com carinho
             </p>
           </div>
         </div>
@@ -129,9 +129,9 @@ export default function History() {
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-medium text-text-primary">Nenhuma memoria ainda</p>
+              <p className="text-lg font-medium text-text-primary">Nenhuma memória ainda</p>
               <p className="text-sm text-text-secondary max-w-xs mx-auto">
-                Quando voces assistirem um video juntos, ele vai aparecer aqui como uma memoria especial.
+                Quando vocês assistirem um vídeo juntos, ele vai aparecer aqui como uma memória especial.
               </p>
             </div>
             <Link
@@ -181,7 +181,7 @@ export default function History() {
                         )}
                         <div className="flex-1 py-4 pr-4 flex flex-col justify-center gap-2">
                           <h3 className="font-medium text-text-primary text-sm leading-snug line-clamp-2">
-                            {entry.video_title || 'Video do YouTube'}
+                            {entry.video_title || 'Vídeo do YouTube'}
                           </h3>
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-xs text-text-secondary">{formatDate(entry.watched_at)}</span>

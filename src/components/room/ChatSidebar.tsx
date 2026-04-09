@@ -91,7 +91,7 @@ export default function ChatSidebar() {
         {/* Typing indicator */}
         {store.typingUsers.length > 0 && (
           <p className="text-xs text-bobflix-500 pl-2 animate-fade-in">
-            {store.typingUsers.join(', ')} {store.typingUsers.length === 1 ? 'esta' : 'estao'} digitando...
+            {store.typingUsers.join(', ')} {store.typingUsers.length === 1 ? 'está' : 'estão'} digitando...
           </p>
         )}
 
